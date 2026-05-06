@@ -1,150 +1,97 @@
-<!-- monitoring-core/app/dashboard/templates/base.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Centralized Monitoring System{% endblock %}</title>
+  <title>{% block title %}Monitoring Platform{% endblock %}</title>
 
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Font Awesome -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <!-- Chart.js -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    .sidebar {
-      min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    .nav-link {
-      color: rgba(255, 255, 255, 0.8) !important;
-    }
-    .nav-link:hover, .nav-link.active {
-      color: white !important;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 5px;
-    }
-    .card {
-      border: none;
-      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-      transition: box-shadow 0.15s ease-in-out;
-    }
-    .card:hover {
-      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    }
-    .metric-card {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
-    }
-    .metric-card.success {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
-    .metric-card.warning {
-      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    }
-    .metric-card.danger {
-      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    }
-    .status-indicator {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 8px;
-    }
-    .status-healthy { background-color: #28a745; }
-    .status-warning { background-color: #ffc107; }
-    .status-critical { background-color: #dc3545; }
-    .status-inactive { background-color: #6c757d; }
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
-    }
-    .loading {
-      animation: pulse 1.5s infinite;
-    }
-  </style>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
 </head>
 <body>
-<div class="container-fluid">
-  <div class="row">
-    <!-- Sidebar -->
-    <div class="col-md-2 sidebar p-3">
-      <h4 class="text-white mb-4">
-        <i class="fas fa-chart-line me-2"></i> Monitoring
-      </h4>
-      <nav class="nav flex-column">
-        <a class="nav-link {% if page == 'overview' %}active{% endif %}" href="/dashboard/"><i class="fas fa-tachometer-alt me-2"></i> Overview</a>
-        <a class="nav-link {% if page == 'services' %}active{% endif %}" href="/dashboard/services"><i class="fas fa-cubes me-2"></i> Services</a>
-        <a class="nav-link {% if page == 'logs' %}active{% endif %}" href="/dashboard/logs"><i class="fas fa-file-alt me-2"></i> Logs</a>
-        <a class="nav-link {% if page == 'ai' %}active{% endif %}" href="/dashboard/ai-insights"><i class="fas fa-brain me-2"></i> AI Insights</a>
-        <a class="nav-link" href="https://65.118.64.4:5601" target="_blank"><i class="fas fa-external-link-alt me-2"></i> Kibana</a>
-        <a class="nav-link" href="/docs" target="_blank"><i class="fas fa-book me-2"></i> API Docs</a>
-      </nav>
-      <div class="mt-auto pt-4">
-        <div class="text-white-50 small">
-          <i class="fas fa-user me-2"></i> Logged in as: {{ username }}
+<div class="container-fluid p-0">
+  <div class="row g-0">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+    <div class="col-md-2 sidebar">
+
+      <!-- Brand -->
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">🔭</div>
+        <div>
+          <div class="sidebar-brand-text">Monitoring</div>
+          <div class="sidebar-brand-sub">AI-Powered Platform</div>
         </div>
-        <a href="#" id="logout-btn" class="btn btn-sm btn-outline-danger" title="Logout">
-            <i class="fas fa-sign-out-alt me-1"></i>
-            Logout
+      </div>
+
+      <!-- Navigation -->
+      <nav class="nav flex-column gap-1">
+        <a class="nav-link {% if page == 'overview' %}active{% endif %}" href="/dashboard/">
+          <i class="fas fa-gauge-high"></i> Overview
         </a>
+        <a class="nav-link {% if page == 'services' %}active{% endif %}" href="/dashboard/services">
+          <i class="fas fa-cubes"></i> Services
+        </a>
+        <a class="nav-link {% if page == 'logs' %}active{% endif %}" href="/dashboard/logs">
+          <i class="fas fa-scroll"></i> Logs
+        </a>
+        <a class="nav-link {% if page == 'ai' %}active{% endif %}" href="/dashboard/ai-insights">
+          <i class="fas fa-brain"></i> AI Insights
+        </a>
+        <hr style="border-color:rgba(255,255,255,.15);margin:.5rem 0;">
+        <a class="nav-link" href="/kibana" target="_blank">
+          <i class="fas fa-chart-area"></i> Kibana
+        </a>
+        <a class="nav-link" href="/docs" target="_blank">
+          <i class="fas fa-book-open"></i> API Docs
+        </a>
+      </nav>
+
+      <!-- Footer -->
+      <div class="sidebar-footer mt-auto">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar">
+            <i class="fas fa-user" style="font-size:.75rem;color:rgba(255,255,255,.8);"></i>
+          </div>
+          <div>
+            <div style="font-weight:600;color:#fff;font-size:.78rem;">{{ username }}</div>
+            <div style="font-size:.68rem;color:rgba(255,255,255,.55);">Administrator</div>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn btn-sm w-100"
+          style="background:rgba(239,68,68,.20);color:rgba(255,255,255,.85);border:1px solid rgba(239,68,68,.35);border-radius:10px;">
+          <i class="fas fa-right-from-bracket me-1"></i> Sign Out
+        </button>
       </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="col-md-10 p-4">
+    <!-- ── Main Content ──────────────────────────────────────────────────── -->
+    <div class="col-md-10 main-content">
       {% block content %}{% endblock %}
     </div>
+
   </div>
 </div>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Logout JavaScript -->
 <script>
-function performLogout() {
-    // Create XMLHttpRequest to clear credentials
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", "/logout", true);
-
-    // Set invalid credentials to force browser to clear cache
-    xhr.setRequestHeader("Authorization", "Basic " + btoa("logout:logout"));
-
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-            // Clear browser cache if possible
-            if ('caches' in window) {
-                caches.keys().then(names => {
-                    names.forEach(name => caches.delete(name));
-                });
-            }
-
-            // Force reload to clear any cached credentials
-            window.location.replace(window.location.href);
-        }
-    };
-
-    xhr.send();
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-    const logoutBtn = document.getElementById("logout-btn");
-    if (logoutBtn) {
-        logoutBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            if (confirm("Are you sure you want to logout?")) {
-                performLogout();
-            }
-        });
+  document.getElementById("logout-btn")?.addEventListener("click", () => {
+    if (confirm("Sign out of the monitoring dashboard?")) {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "/logout", true);
+      xhr.setRequestHeader("Authorization", "Basic " + btoa("logout:logout"));
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) window.location.replace(window.location.href);
+      };
+      xhr.send();
     }
+  });
 });
 </script>
-
 {% block scripts %}{% endblock %}
 </body>
 </html>
