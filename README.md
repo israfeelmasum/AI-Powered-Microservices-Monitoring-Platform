@@ -60,6 +60,22 @@ A production-ready **centralized monitoring and observability platform** for mic
 
 ---
 
+## Screenshots
+
+### Dashboard Overview
+![Dashboard Overview](screenshots/output/dashboard_overview.png)
+
+### Services Health
+![Services](screenshots/output/dashboard_services.png)
+
+### AI Engine & Anomaly Detection
+![AI Insights](screenshots/output/dashboard_ai.png)
+
+### Live Log Feed
+![Logs](screenshots/output/dashboard_logs.png)
+
+---
+
 ## Quick Start
 
 ### Prerequisites
