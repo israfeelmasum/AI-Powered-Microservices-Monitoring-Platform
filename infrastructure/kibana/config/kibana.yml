@@ -1,0 +1,23 @@
+# kibana/config/kibana.yml
+server.name: monitoring-kibana
+server.host: 0.0.0.0
+server.port: 5601
+elasticsearch.hosts: ["http://65.118.64.4:9200"]
+monitoring.ui.container.elasticsearch.enabled: true
+
+# Logging
+logging.appenders:
+  file:
+    type: file
+    fileName: /var/log/kibana/kibana.log
+    layout:
+      type: json
+
+logging.loggers:
+  - name: plugins.spaces
+    level: error
+
+# Dashboard settings
+server.maxPayload: 1048576
+elasticsearch.requestTimeout: 30000
+elasticsearch.shardTimeout: 30000

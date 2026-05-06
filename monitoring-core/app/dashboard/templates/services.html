@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Service Status - Centralized Monitoring{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        <i class="fas fa-cubes me-2"></i>
+        Services Monitoring
+    </h1>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-server me-2"></i> Registered Services</h6>
+    </div>
+    <div class="card-body" id="services-container">
+        <div class="text-center py-4">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-muted mt-2">Loading services...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    try {
+        const res = await fetch("/dashboard/api/dashboard-data");
+        const data = await res.json();
+
+        if (data.services) {
+            renderServices(data.services);
+        } else {
+            showError("No service data available.");
+        }
+    } catch (err) {
+        console.error(err);
+        showError("Failed to load services.");
+    }
+});
+
+function renderServices(services) {
+    const container = document.getElementById("services-container");
+    if (Object.keys(services).length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No services found.
+            </div>
+        `;
+        return;
+    }
+
+    let html = `<div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Status</th>
+                    <th>Requests</th>
+                    <th>Errors</th>
+                    <th>Avg. Response Time</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+    for (const [name, info] of Object.entries(services)) {
+        const statusClass = getStatusClass(info.status, info.error_count);
+        html += `
+            <tr>
+                <td><strong>${name}</strong></td>
+                <td><span class="badge bg-${statusClass}">${info.status}</span></td>
+                <td>${info.request_count}</td>
+                <td>${info.error_count}</td>
+                <td>${Math.round(info.avg_response_time)} ms</td>
+            </tr>
+        `;
+    }
+
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+}
+
+function getStatusClass(status, errorCount) {
+    if (status === "inactive") return "secondary";
+    if (errorCount > 10) return "danger";
+    if (errorCount > 5) return "warning";
+    return "success";
+}
+
+function showError(message) {
+    document.getElementById("services-container").innerHTML = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i> ${message}
+        </div>
+    `;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+# elasticsearch/config/elasticsearch.yml
+cluster.name: "monitoring-cluster"
+node.name: "monitoring-node-1"
+path.data: /usr/share/elasticsearch/data
+path.logs: /usr/share/elasticsearch/logs
+network.host: 0.0.0.0
+http.port: 9200
+discovery.type: single-node
+xpack.security.enabled: false
+xpack.monitoring.collection.enabled: true
+
+# Performance settings
+indices.memory.index_buffer_size: 20%
+indices.memory.min_index_buffer_size: 96mb
+
+# Index lifecycle management
+indices.lifecycle.poll_interval: 10m
+
+# Index templates
+action.auto_create_index: true

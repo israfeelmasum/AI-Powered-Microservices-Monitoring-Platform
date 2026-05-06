@@ -1,0 +1,905 @@
+# infrastructure/docker-compose.yml
+version: '3.8'
+
+services:
+  # Elasticsearch for log storage
+  elasticsearch:
+    image: elasticsearch:8.8.0
+    container_name: monitoring_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+    networks:
+      - monitoring-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Kibana for visualization
+  kibana:
+    image: kibana:8.8.0
+    container_name: monitoring_kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    volumes:
+      - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml
+    networks:
+      - monitoring-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: monitoring_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - monitoring-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Ollama for AI processing
+  ollama:
+    image: ollama/ollama:latest
+    container_name: monitoring_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./ollama/models:/models
+    networks:
+      - monitoring-network
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:11434/api/tags || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Monitoring Core Service
+  monitoring-core:
+    build:
+      context: ../monitoring-core
+      dockerfile: Dockerfile
+    container_name: monitoring_core
+    ports:
+      - "8000:8000"
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - REDIS_URL=redis://redis:6379
+      - OLLAMA_URL=http://ollama:11434
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - NOTE_SERVICE_SECRET=${NOTE_SERVICE_SECRET}
+      - USER_SERVICE_SECRET=${USER_SERVICE_SECRET}
+      - ORDER_SERVICE_SECRET=${ORDER_SERVICE_SECRET}
+      - PAYMENT_SERVICE_SECRET=${PAYMENT_SERVICE_SECRET}
+    volumes:
+      - ./monitoring-core/logs:/app/logs
+    networks:
+      - monitoring-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Note Service
+  note-service:
+    build:
+      context: ../microservices/note-service
+      dockerfile: Dockerfile
+    container_name: note_service
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - MONITORING_URL=http://monitoring-core:8000
+      - NOTE_SERVICE_SECRET=${NOTE_SERVICE_SECRET}
+      - MONITORING_ADMIN_USERNAME=${ADMIN_USERNAME}
+      - MONITORING_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    networks:
+      - monitoring-network
+    depends_on:
+      - monitoring-core
+    restart: unless-stopped
+
+volumes:
+  elasticsearch_data:
+  redis_data:
+  ollama_data:
+
+networks:
+  monitoring-network:
+    driver: bridge
+
+---
+# monitoring-core/Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create logs directory
+RUN mkdir -p logs
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+---
+# monitoring-core/requirements.txt
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+aiohttp==3.9.0
+elasticsearch==8.11.0
+redis==5.0.1
+jinja2==3.1.2
+python-multipart==0.0.6
+psutil==5.9.6
+asyncio==3.4.3
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+---
+# microservices/note-service/Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Expose port
+EXPOSE 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Run the application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+
+---
+# microservices/note-service/requirements.txt
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+aiohttp==3.9.0
+psutil==5.9.6
+python-dotenv==1.0.0
+
+---
+# microservices/note-service/.env
+PORT=8001
+MONITORING_URL=http://localhost:8000
+NOTE_SERVICE_SECRET=note_secret_key_2024
+DATABASE_URL=sqlite:///./notes.db
+
+---
+# monitoring-core/app/config/settings.py
+import os
+from pydantic import BaseSettings
+from typing import Dict
+
+class Settings(BaseSettings):
+    # Basic configuration
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+    DEBUG: bool = False
+
+    # Authentication
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "admin"
+    SECRET_KEY: str = "monitoring_master_key_2024"
+
+    # External services
+    ELASTICSEARCH_URL: str = "http://localhost:9200"
+    REDIS_URL: str = "redis://localhost:6379"
+    OLLAMA_URL: str = "http://localhost:11434"
+
+    # Service secrets for authentication
+    SERVICE_SECRETS: Dict[str, str] = {
+        "note-service": "note_secret_key_2024",
+        "user-service": "user_secret_key_2024",
+        "order-service": "order_secret_key_2024"
+    }
+
+    # Monitoring configuration
+    LOG_RETENTION_DAYS: int = 30
+    METRICS_RETENTION_DAYS: int = 90
+    AI_ANALYSIS_INTERVAL_MINUTES: int = 5
+
+    # AI Configuration
+    OLLAMA_MODELS: list = ["mistral", "llama2"]
+    AI_TEMPERATURE: float = 0.1
+    MAX_AI_CONTEXT_LENGTH: int = 4000
+
+    # Performance settings
+    MAX_CONCURRENT_AI_REQUESTS: int = 5
+    REQUEST_TIMEOUT_SECONDS: int = 30
+
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
+
+---
+# elasticsearch/config/elasticsearch.yml
+cluster.name: "monitoring-cluster"
+node.name: "monitoring-node-1"
+path.data: /usr/share/elasticsearch/data
+path.logs: /usr/share/elasticsearch/logs
+network.host: 0.0.0.0
+http.port: 9200
+discovery.type: single-node
+xpack.security.enabled: false
+xpack.monitoring.collection.enabled: true
+
+# Performance settings
+indices.memory.index_buffer_size: 20%
+indices.memory.min_index_buffer_size: 96mb
+
+# Index lifecycle management
+indices.lifecycle.poll_interval: 10m
+
+---
+# kibana/config/kibana.yml
+server.name: kibana
+server.host: 0.0.0.0
+server.port: 5601
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+monitoring.ui.container.elasticsearch.enabled: true
+
+# Logging
+logging.appenders:
+  file:
+    type: file
+    fileName: /var/log/kibana/kibana.log
+    layout:
+      type: json
+logging.loggers:
+  - name: plugins.spaces
+    level: error
+
+# Default space
+xpack.spaces.default: monitoring
+
+---
+# scripts/setup.sh
+#!/bin/bash
+
+echo "🚀 Setting up Centralized Monitoring System..."
+
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker is not installed. Please install Docker first."
+    exit 1
+fi
+
+if ! command -v docker-compose &> /dev/null; then
+    echo "❌ Docker Compose is not installed. Please install Docker Compose first."
+    exit 1
+fi
+
+# Create necessary directories
+echo "📁 Creating directories..."
+mkdir -p monitoring-core/logs
+mkdir -p elasticsearch/data
+mkdir -p redis/data
+mkdir -p ollama/models
+mkdir -p kibana/data
+
+# Set permissions
+echo "🔒 Setting permissions..."
+chmod 755 monitoring-core/logs
+chmod 755 elasticsearch/data
+chmod 755 redis/data
+chmod 755 ollama/models
+chmod 755 kibana/data
+
+# Build and start services
+echo "🏗️  Building and starting services..."
+cd infrastructure
+docker-compose up -d
+
+# Wait for services to be ready
+echo "⏳ Waiting for services to be ready..."
+sleep 30
+
+# Check service health
+echo "🏥 Checking service health..."
+
+check_service() {
+    local service_name=$1
+    local url=$2
+    local max_attempts=30
+    local attempt=1
+    
+    echo "Checking $service_name..."
+    while [ $attempt -le $max_attempts ]; do
+        if curl -f -s "$url" > /dev/null 2>&1; then
+            echo "✅ $service_name is ready"
+            return 0
+        fi
+        echo "⏳ Attempt $attempt/$max_attempts: $service_name not ready yet..."
+        sleep 10
+        attempt=$((attempt + 1))
+    done
+    echo "❌ $service_name failed to start"
+    return 1
+}
+
+# Check each service
+check_service "Elasticsearch" "http://localhost:9200/_cluster/health"
+check_service "Kibana" "http://localhost:5601/api/status"
+check_service "Redis" "http://localhost:6379" # Will fail gracefully for Redis
+check_service "Monitoring Core" "http://localhost:8000/health"
+check_service "Note Service" "http://localhost:8001/health"
+
+# Setup Ollama models
+echo "🤖 Setting up Ollama models..."
+docker exec monitoring_ollama ollama pull mistral
+docker exec monitoring_ollama ollama pull llama2
+
+# Create Elasticsearch indices
+echo "📊 Creating Elasticsearch indices..."
+python3 scripts/create_indices.py
+
+# Create Kibana dashboards
+echo "📈 Setting up Kibana dashboards..."
+python3 scripts/setup_kibana.py
+
+echo "🎉 Setup complete!"
+echo ""
+echo "🌐 Access URLs:"
+echo "   • Monitoring Dashboard: http://localhost:8000 (admin/admin)"
+echo "   • Kibana: http://localhost:5601"
+echo "   • Note Service: http://localhost:8001"
+echo "   • Elasticsearch: http://localhost:9200"
+echo ""
+echo "📚 Test the system:"
+echo "   curl http://localhost:8001/notes"
+echo "   curl http://localhost:8000/health"
+
+---
+# scripts/create_indices.py
+#!/usr/bin/env python3
+
+import requests
+import json
+from datetime import datetime
+
+# Elasticsearch configuration
+ES_URL = "http://localhost:9200"
+
+# Index templates
+INDICES = {
+    "monitoring-logs": {
+        "mappings": {
+            "properties": {
+                "timestamp": {"type": "date"},
+                "service": {"type": "keyword"},
+                "level": {"type": "keyword"},
+                "message": {"type": "text"},
+                "correlation_id": {"type": "keyword"},
+                "endpoint": {"type": "keyword"},
+                "method": {"type": "keyword"},
+                "status_code": {"type": "integer"},
+                "response_time": {"type": "float"},
+                "client_ip": {"type": "ip"},
+                "user_agent": {"type": "text"},
+                "error_type": {"type": "keyword"},
+                "system_metrics": {
+                    "properties": {
+                        "cpu_percent": {"type": "float"},
+                        "memory_mb": {"type": "float"},
+                        "memory_percent": {"type": "float"}
+                    }
+                }
+            }
+        },
+        "settings": {
+            "index": {
+                "number_of_shards": 1,
+                "number_of_replicas": 0,
+                "refresh_interval": "5s"
+            }
+        }
+    },
+    "monitoring-metrics": {
+        "mappings": {
+            "properties": {
+                "timestamp": {"type": "date"},
+                "service": {"type": "keyword"},
+                "metrics": {"type": "object", "dynamic": True}
+            }
+        },
+        "settings": {
+            "index": {
+                "number_of_shards": 1,
+                "number_of_replicas": 0
+            }
+        }
+    },
+    "monitoring-anomalies": {
+        "mappings": {
+            "properties": {
+                "timestamp": {"type": "date"},
+                "service": {"type": "keyword"},
+                "anomaly_id": {"type": "keyword"},
+                "type": {"type": "keyword"},
+                "severity": {"type": "keyword"},
+                "description": {"type": "text"},
+                "recommendation": {"type": "text"},
+                "detected_by": {"type": "keyword"},
+                "model": {"type": "keyword"}
+            }
+        }
+    },
+    "monitoring-health": {
+        "mappings": {
+            "properties": {
+                "timestamp": {"type": "date"},
+                "service": {"type": "keyword"},
+                "status": {"type": "keyword"},
+                "checks": {"type": "object", "dynamic": True},
+                "system_metrics": {"type": "object", "dynamic": True}
+            }
+        }
+    }
+}
+
+def create_index(index_name, config):
+    """Create an Elasticsearch index"""
+    print(f"Creating index: {index_name}")
+    
+    try:
+        response = requests.put(
+            f"{ES_URL}/{index_name}",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(config),
+            timeout=30
+        )
+
+        if response.status_code in [200, 201]:
+            print(f"✅ Index {index_name} created successfully")
+        elif response.status_code == 400 and "already exists" in response.text:
+            print(f"ℹ️  Index {index_name} already exists")
+        else:
+            print(f"❌ Failed to create index {index_name}: {response.status_code}")
+            print(response.text)
+            
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error creating index {index_name}: {e}")
+
+def main():
+    print("🗂️  Creating Elasticsearch indices...")
+
+    # Wait for Elasticsearch to be ready
+    print("⏳ Waiting for Elasticsearch...")
+    import time
+    for _ in range(30):
+        try:
+            response = requests.get(f"{ES_URL}/_cluster/health", timeout=5)
+            if response.status_code == 200:
+                print("✅ Elasticsearch is ready")
+                break
+        except:
+            pass
+        time.sleep(2)
+    else:
+        print("❌ Elasticsearch not ready after 60 seconds")
+        return
+
+    # Create indices
+    for index_name, config in INDICES.items():
+        create_index(index_name, config)
+
+    print("🎉 Elasticsearch indices setup complete!")
+
+if __name__ == "__main__":
+    main()
+
+---
+# scripts/setup_kibana.py
+#!/usr/bin/env python3
+
+import requests
+import json
+import time
+
+KIBANA_URL = "http://localhost:5601"
+
+# Index patterns
+INDEX_PATTERNS = [
+    {
+        "id": "monitoring-logs-*",
+        "title": "monitoring-logs-*",
+        "timeFieldName": "timestamp"
+    },
+    {
+        "id": "monitoring-metrics-*",
+        "title": "monitoring-metrics-*",
+        "timeFieldName": "timestamp"
+    },
+    {
+        "id": "monitoring-anomalies-*",
+        "title": "monitoring-anomalies-*",
+        "timeFieldName": "timestamp"
+    }
+]
+
+# Sample dashboard
+DASHBOARD = {
+    "version": "8.8.0",
+    "objects": [
+        {
+            "id": "monitoring-overview",
+            "type": "dashboard",
+            "attributes": {
+                "title": "Monitoring Overview",
+                "description": "Central monitoring dashboard for microservices",
+                "panelsJSON": json.dumps([
+                    {
+                        "gridData": {"x": 0, "y": 0, "w": 24, "h": 15},
+                        "panelIndex": "1",
+                        "embeddableConfig": {},
+                        "panelRefName": "panel_1"
+                    }
+                ]),
+                "timeRestore": True,
+                "timeTo": "now",
+                "timeFrom": "now-24h",
+                "refreshInterval": {"pause": False, "value": 30000}
+            }
+        }
+    ]
+}
+
+def wait_for_kibana():
+    """Wait for Kibana to be ready"""
+    print("⏳ Waiting for Kibana to be ready...")
+
+    for attempt in range(60):
+        try:
+            response = requests.get(f"{KIBANA_URL}/api/status", timeout=5)
+            if response.status_code == 200:
+                print("✅ Kibana is ready")
+                return True
+        except:
+            pass
+        time.sleep(5)
+
+    print("❌ Kibana not ready after 5 minutes")
+    return False
+
+def create_index_pattern(pattern):
+    """Create Kibana index pattern"""
+    print(f"Creating index pattern: {pattern['title']}")
+    
+    payload = {
+        "attributes": {
+            "title": pattern["title"],
+            "timeFieldName": pattern["timeFieldName"]
+        }
+    }
+
+    try:
+        response = requests.post(
+            f"{KIBANA_URL}/api/saved_objects/index-pattern/{pattern['id']}",
+            headers={
+                "Content-Type": "application/json",
+                "kbn-xsrf": "true"
+            },
+            data=json.dumps(payload),
+            timeout=30
+        )
+
+        if response.status_code in [200, 201]:
+            print(f"✅ Index pattern {pattern['title']} created")
+        elif response.status_code == 409:
+            print(f"ℹ️  Index pattern {pattern['title']} already exists")
+        else:
+            print(f"❌ Failed to create index pattern: {response.status_code}")
+            
+    except Exception as e:
+        print(f"❌ Error creating index pattern: {e}")
+
+def create_dashboard():
+    """Create monitoring dashboard"""
+    print("Creating monitoring dashboard...")
+
+    try:
+        response = requests.post(
+            f"{KIBANA_URL}/api/saved_objects/_import",
+            headers={"kbn-xsrf": "true"},
+            files={"file": ("dashboard.ndjson", json.dumps(DASHBOARD))},
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            print("✅ Dashboard created successfully")
+        else:
+            print(f"❌ Failed to create dashboard: {response.status_code}")
+            
+    except Exception as e:
+        print(f"❌ Error creating dashboard: {e}")
+
+def main():
+    print("📈 Setting up Kibana dashboards...")
+
+    if not wait_for_kibana():
+        return
+
+    # Create index patterns
+    for pattern in INDEX_PATTERNS:
+        create_index_pattern(pattern)
+
+    # Create dashboard
+    create_dashboard()
+    
+    print("🎉 Kibana setup complete!")
+    print(f"🌐 Access Kibana at: {KIBANA_URL}")
+
+if __name__ == "__main__":
+    main()
+
+---
+# scripts/deploy.sh
+#!/bin/bash
+
+echo "🚀 Deploying Centralized Monitoring System..."
+
+# Check if services are running
+if ! docker-compose -f infrastructure/docker-compose.yml ps | grep -q "Up"; then
+    echo "⏳ Starting services..."
+    cd infrastructure
+    docker-compose up -d
+    cd ..
+fi
+
+# Wait for core services
+echo "⏳ Waiting for core services..."
+sleep 60
+
+# Run health checks
+echo "🏥 Running health checks..."
+
+services=(
+    "http://localhost:9200/_cluster/health:Elasticsearch"
+    "http://localhost:5601/api/status:Kibana"
+    "http://localhost:8000/health:Monitoring Core"
+    "http://localhost:8001/health:Note Service"
+)
+
+for service in "${services[@]}"; do
+    url="${service%:*}"
+    name="${service#*:}"
+    
+    if curl -f -s "$url" > /dev/null; then
+        echo "✅ $name is healthy"
+    else
+        echo "❌ $name is not responding"
+    fi
+done
+
+# Create sample data
+echo "📊 Creating sample monitoring data..."
+python3 scripts/seed_data.py
+
+echo "🎉 Deployment complete!"
+echo ""
+echo "🔗 Quick Links:"
+echo "   • Monitoring Dashboard: http://localhost:8000"
+echo "   • API Documentation: http://localhost:8000/docs"
+echo "   • Kibana Dashboards: http://localhost:5601"
+echo "   • Note Service API: http://localhost:8001/docs"
+
+---
+# scripts/seed_data.py
+#!/usr/bin/env python3
+
+import requests
+import json
+import time
+import random
+from datetime import datetime, timedelta
+
+# Service URLs
+MONITORING_URL = "http://localhost:8000"
+NOTE_SERVICE_URL = "http://localhost:8001"
+
+def create_sample_notes():
+    """Create sample notes to generate monitoring data"""
+    print("📝 Creating sample notes...")
+    
+    sample_notes = [
+        {"title": "Meeting Notes", "content": "Quarterly planning meeting notes", "tags": ["meeting", "planning"]},
+        {"title": "Project Ideas", "content": "New feature ideas for the platform", "tags": ["ideas", "features"]},
+        {"title": "Bug Reports", "content": "List of reported bugs to fix", "tags": ["bugs", "fixes"]},
+        {"title": "Code Review", "content": "Notes from recent code reviews", "tags": ["code", "review"]},
+        {"title": "Performance Tests", "content": "Results from performance testing", "tags": ["performance", "testing"]}
+    ]
+
+    created_notes = []
+
+    for note_data in sample_notes:
+        try:
+            response = requests.post(
+                f"{NOTE_SERVICE_URL}/notes",
+                json=note_data,
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                note = response.json()
+                created_notes.append(note)
+                print(f"✅ Created note: {note['title']}")
+            else:
+                print(f"❌ Failed to create note: {response.status_code}")
+                
+            # Add some delay to create realistic timing data
+            time.sleep(random.uniform(0.1, 0.5))
+            
+        except Exception as e:
+            print(f"❌ Error creating note: {e}")
+    
+    return created_notes
+
+def generate_traffic():
+    """Generate some API traffic for monitoring"""
+    print("🚦 Generating API traffic...")
+    
+    endpoints = [
+        ("GET", "/notes"),
+        ("GET", "/health"),
+        ("GET", "/notes?tag=meeting"),
+        ("GET", "/notes?skip=0&limit=5")
+    ]
+
+    for _ in range(20):
+        method, endpoint = random.choice(endpoints)
+
+        try:
+            if method == "GET":
+                response = requests.get(f"{NOTE_SERVICE_URL}{endpoint}", timeout=5)
+
+            print(f"📡 {method} {endpoint} -> {response.status_code}")
+            
+            # Random delay between requests
+            time.sleep(random.uniform(0.1, 1.0))
+
+        except Exception as e:
+            print(f"❌ Error generating traffic: {e}")
+
+def trigger_test_scenarios():
+    """Trigger various test scenarios for monitoring"""
+    print("🧪 Triggering test scenarios...")
+
+    # Test slow endpoint
+    try:
+        print("⏳ Testing slow endpoint...")
+        response = requests.get(f"{NOTE_SERVICE_URL}/test/slow", timeout=10)
+        print(f"✅ Slow endpoint: {response.status_code}")
+    except Exception as e:
+        print(f"❌ Slow endpoint error: {e}")
+    
+    # Test error endpoint
+    try:
+        print("💥 Testing error endpoint...")
+        response = requests.get(f"{NOTE_SERVICE_URL}/test/error", timeout=5)
+        print(f"❌ Error endpoint: {response.status_code}")
+    except Exception as e:
+        print(f"✅ Error endpoint triggered: {e}")
+    
+    # Test memory endpoint
+    try:
+        print("🧠 Testing memory endpoint...")
+        response = requests.get(f"{NOTE_SERVICE_URL}/test/memory", timeout=10)
+        print(f"✅ Memory endpoint: {response.status_code}")
+    except Exception as e:
+        print(f"❌ Memory endpoint error: {e}")
+
+def check_monitoring_data():
+    """Check if monitoring data is being collected"""
+    print("📊 Checking monitoring data collection...")
+
+    try:
+        # Check Elasticsearch for logs
+        response = requests.get("http://localhost:9200/monitoring-logs-*/_search", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            hit_count = data['hits']['total']['value']
+            print(f"✅ Found {hit_count} log entries in Elasticsearch")
+        else:
+            print(f"❌ Failed to query Elasticsearch: {response.status_code}")
+            
+    except Exception as e:
+        print(f"❌ Error checking monitoring data: {e}")
+
+def main():
+    print("🌱 Seeding monitoring system with sample data...")
+
+    # Wait for services to be ready
+    print("⏳ Waiting for services...")
+    time.sleep(10)
+    
+    # Create sample data
+    created_notes = create_sample_notes()
+    
+    # Generate traffic
+    generate_traffic()
+    
+    # Trigger test scenarios
+    trigger_test_scenarios()
+    
+    # Wait a bit for data to be processed
+    time.sleep(5)
+    
+    # Check monitoring data
+    check_monitoring_data()
+    
+    print("🎉 Sample data creation complete!")
+    print(f"📝 Created {len(created_notes)} sample notes")
+    print("🔍 Check the monitoring dashboard for collected data")
+
+if __name__ == "__main__":
+    main()

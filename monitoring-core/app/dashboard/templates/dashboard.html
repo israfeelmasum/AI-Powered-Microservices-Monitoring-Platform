@@ -1,0 +1,370 @@
+<!--# monitoring-core/app/dashboard/templates/dashboard.html-->
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Centralized Monitoring{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        <i class="fas fa-tachometer-alt me-2"></i>
+        System Overview
+    </h1>
+    <div class="text-muted">
+        <i class="fas fa-clock me-2"></i>
+        Last updated: <span id="last-updated">Loading...</span>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <h2 id="total-requests" class="loading">--</h2>
+                <p class="mb-0">Total Requests (1h)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card success">
+            <div class="card-body text-center">
+                <h2 id="error-rate" class="loading">--%</h2>
+                <p class="mb-0">Error Rate</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card warning">
+            <div class="card-body text-center">
+                <h2 id="avg-response-time" class="loading">--ms</h2>
+                <p class="mb-0">Avg Response Time</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card danger">
+            <div class="card-body text-center">
+                <h2 id="active-services" class="loading">--</h2>
+                <p class="mb-0">Active Services</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Request Volume & Error Rate
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="requestChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Service Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="serviceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Services Status -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-cubes me-2"></i>
+                    Services Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="services-list" class="loading">
+                    Loading services...
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Recent Anomalies
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="anomalies-list" class="loading">
+                    Loading anomalies...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Insights -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-brain me-2"></i>
+                    AI-Powered Insights
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="ai-insights" class="loading">
+                    Loading AI insights...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let requestChart, serviceChart;
+
+// Initialize charts
+function initCharts() {
+    // Request Volume Chart
+    const requestCtx = document.getElementById('requestChart').getContext('2d');
+    requestChart = new Chart(requestCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Requests',
+                data: [],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.1
+            }, {
+                label: 'Errors',
+                data: [],
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Service Distribution Chart
+    const serviceCtx = document.getElementById('serviceChart').getContext('2d');
+    serviceChart = new Chart(serviceCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF',
+                    '#FF9F40'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+// Update dashboard data
+async function updateDashboard() {
+    try {
+        const response = await fetch('/dashboard/api/dashboard-data');
+        const data = await response.json();
+
+        if (data.error) {
+            console.error('Dashboard error:', data.error);
+            return;
+        }
+
+        // Update metrics
+        updateMetrics(data.overview);
+
+        // Update services
+        updateServicesList(data.services);
+
+        // Update anomalies
+        updateAnomaliesList(data.recent_anomalies);
+
+        // Update charts
+        updateCharts(data);
+
+        // Update timestamp
+        document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+
+    } catch (error) {
+        console.error('Failed to update dashboard:', error);
+    }
+}
+
+function updateMetrics(overview) {
+    document.getElementById('total-requests').textContent = overview.total_requests;
+    document.getElementById('error-rate').textContent = overview.error_rate + '%';
+    document.getElementById('avg-response-time').textContent = overview.avg_response_time + 'ms';
+    document.getElementById('active-services').textContent = overview.active_services;
+
+    // Remove loading class
+    document.querySelectorAll('.loading').forEach(el => el.classList.remove('loading'));
+}
+
+function updateServicesList(services) {
+    const container = document.getElementById('services-list');
+
+    if (Object.keys(services).length === 0) {
+        container.innerHTML = '<p class="text-muted">No services detected</p>';
+        return;
+    }
+
+    let html = '';
+    for (const [serviceName, metrics] of Object.entries(services)) {
+        const statusClass = getStatusClass(metrics.status, metrics.error_count);
+        const statusText = getStatusText(metrics.status, metrics.error_count);
+
+        html += `
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div>
+                    <span class="status-indicator ${statusClass}"></span>
+                    <strong>${serviceName}</strong>
+                    <small class="text-muted ms-2">${statusText}</small>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted">
+                        ${metrics.request_count} requests,
+                        ${metrics.error_count} errors,
+                        ${metrics.avg_response_time}ms avg
+                    </small>
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+    container.classList.remove('loading');
+}
+
+function updateAnomaliesList(anomalies) {
+    const container = document.getElementById('anomalies-list');
+
+    if (anomalies.length === 0) {
+        container.innerHTML = '<p class="text-muted">No recent anomalies detected</p>';
+        return;
+    }
+
+    let html = '';
+    anomalies.forEach(anomaly => {
+        const severityClass = getSeverityClass(anomaly.severity);
+        const timeAgo = getTimeAgo(anomaly.timestamp);
+
+        html += `
+            <div class="alert alert-${severityClass} alert-sm py-2 mb-2">
+                <small>
+                    <strong>${anomaly.type}</strong> - ${anomaly.description}
+                    <br>
+                    <span class="text-muted">${timeAgo}</span>
+                </small>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    container.classList.remove('loading');
+}
+
+function updateCharts(data) {
+    // Update service distribution chart
+    const serviceNames = Object.keys(data.services);
+    const serviceCounts = Object.values(data.services).map(s => s.request_count);
+
+    serviceChart.data.labels = serviceNames;
+    serviceChart.data.datasets[0].data = serviceCounts;
+    serviceChart.update();
+
+    // For request chart, we'd need time series data
+    // This is a simplified version
+    const now = new Date();
+    const labels = [];
+    for (let i = 23; i >= 0; i--) {
+        labels.push(new Date(now - i * 60 * 60 * 1000).getHours() + ':00');
+    }
+
+    requestChart.data.labels = labels;
+    // In a real implementation, you'd get actual time series data
+    requestChart.data.datasets[0].data = Array(24).fill(0).map(() => Math.floor(Math.random() * 100));
+    requestChart.data.datasets[1].data = Array(24).fill(0).map(() => Math.floor(Math.random() * 10));
+    requestChart.update();
+}
+
+// Helper functions
+function getStatusClass(status, errorCount) {
+    if (status === 'inactive') return 'status-inactive';
+    if (errorCount > 10) return 'status-critical';
+    if (errorCount > 5) return 'status-warning';
+    return 'status-healthy';
+}
+
+function getStatusText(status, errorCount) {
+    if (status === 'inactive') return 'Inactive';
+    if (errorCount > 10) return 'Critical';
+    if (errorCount > 5) return 'Warning';
+    return 'Healthy';
+}
+
+function getSeverityClass(severity) {
+    switch (severity) {
+        case 'critical': return 'danger';
+        case 'high': return 'warning';
+        case 'medium': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function getTimeAgo(timestamp) {
+    const diff = Date.now() - new Date(timestamp).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    initCharts();
+    updateDashboard();
+
+    // Update every 30 seconds
+    setInterval(updateDashboard, 30000);
+});
+</script>
+{% endblock %}

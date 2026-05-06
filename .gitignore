@@ -1,0 +1,52 @@
+# Environment & secrets — NEVER commit these
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/db.json
+
+# Docker volumes (local data)
+elasticsearch/data/
+redis/data/
+kibana/data/
+ollama/models/*.bin
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test & coverage
+.pytest_cache/
+.coverage
+htmlcov/

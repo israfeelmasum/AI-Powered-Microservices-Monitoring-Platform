@@ -1,0 +1,615 @@
+<!-- monitoring-core/app/dashboard/templates/ai_insights.html -->
+{% extends "base.html" %}
+
+{% block title %}AI Insights - Centralized Monitoring{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        <i class="fas fa-brain me-2"></i>
+        AI-Powered Insights
+    </h1>
+    <div>
+        <button class="btn btn-outline-primary" onclick="triggerAnalysis()">
+            <i class="fas fa-magic me-1"></i>
+            Run Analysis
+        </button>
+    </div>
+</div>
+
+<!-- AI Status Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h6 class="mb-1">
+                            <i class="fas fa-robot me-2"></i>
+                            AI Engine Status
+                        </h6>
+                        <p class="text-muted mb-0">
+                            <span id="ai-status" class="badge bg-success">Online</span>
+                            <span class="ms-2">Models: Mistral, LLaMA</span>
+                            <span class="ms-2">Last Analysis: <span id="last-analysis">Loading...</span></span>
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="runAnomalyDetection()">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Detect Anomalies
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="analyzePatterns()">
+                                <i class="fas fa-chart-line me-1"></i>
+                                Analyze Patterns
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Insights Cards -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                    Recent Anomalies
+                </h6>
+            </div>
+            <div class="card-body" id="anomalies-card">
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mt-2 mb-0">Loading anomalies...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2 text-info"></i>
+                    AI Recommendations
+                </h6>
+            </div>
+            <div class="card-body" id="recommendations-card">
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mt-2 mb-0">Loading recommendations...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Results -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Pattern Analysis
+                </h6>
+            </div>
+            <div class="card-body" id="pattern-analysis">
+                <p class="text-muted">Click "Analyze Patterns" to see AI-powered pattern analysis results.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Summarization -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-file-text me-2"></i>
+                    AI Log Summary
+                </h6>
+                <div>
+                    <select class="form-select form-select-sm" id="summaryType" style="width: auto;">
+                        <option value="general">General Summary</option>
+                        <option value="error_focus">Error Focus</option>
+                        <option value="performance">Performance Focus</option>
+                        <option value="security">Security Focus</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body" id="log-summary">
+                <div class="text-center py-4">
+                    <button class="btn btn-outline-primary" onclick="generateSummary()">
+                        <i class="fas fa-magic me-1"></i>
+                        Generate AI Summary
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load initial AI insights
+async function loadAIInsights() {
+    try {
+        // Load anomalies
+        const anomaliesResponse = await fetch('/api/v1/ai/anomalies?hours=24');
+        const anomaliesData = await anomaliesResponse.json();
+        displayAnomalies(anomaliesData.anomalies || []);
+
+        // Load dashboard insights for recommendations
+        const insightsResponse = await fetch('/api/v1/ai/insights/dashboard');
+        const insightsData = await insightsResponse.json();
+        displayRecommendations(insightsData.recommendations || []);
+
+        // Update last analysis time
+        document.getElementById('last-analysis').textContent = new Date().toLocaleTimeString();
+
+    } catch (error) {
+        console.error('Failed to load AI insights:', error);
+        showError('Failed to load AI insights');
+    }
+}
+
+function displayAnomalies(anomalies) {
+    const container = document.getElementById('anomalies-card');
+
+    if (anomalies.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-3">
+                <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                <p class="text-muted mb-0">No anomalies detected</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    anomalies.slice(0, 5).forEach(anomaly => {
+        const severityClass = getSeverityClass(anomaly.severity);
+        const timeAgo = getTimeAgo(anomaly.timestamp);
+
+        html += `
+            <div class="alert alert-${severityClass} alert-sm py-2 mb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${anomaly.type}</strong><br>
+                        <small>${anomaly.description}</small>
+                    </div>
+                    <small class="text-muted">${timeAgo}</small>
+                </div>
+            </div>
+        `;
+    });
+
+    if (anomalies.length > 5) {
+        html += `
+            <div class="text-center mt-2">
+                <button class="btn btn-outline-primary btn-sm" onclick="showAllAnomalies()">
+                    View All ${anomalies.length} Anomalies
+                </button>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+function displayRecommendations(recommendations) {
+    const container = document.getElementById('recommendations-card');
+
+    if (recommendations.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-3">
+                <i class="fas fa-thumbs-up text-success fa-2x mb-2"></i>
+                <p class="text-muted mb-0">System running optimally</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    recommendations.slice(0, 3).forEach(rec => {
+        const priorityClass = getPriorityClass(rec.priority);
+
+        html += `
+            <div class="border-start border-${priorityClass} border-3 ps-3 mb-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong class="text-${priorityClass}">${rec.type.replace('_', ' ').toUpperCase()}</strong><br>
+                        <small>${rec.message}</small><br>
+                        <small class="text-muted"><strong>Action:</strong> ${rec.action}</small>
+                    </div>
+                    <span class="badge bg-${priorityClass}">${rec.priority}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+async function runAnomalyDetection() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Detecting...';
+    button.disabled = true;
+
+    try {
+        const response = await fetch('/api/v1/ai/detect-anomalies', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + btoa('admin:admin')
+            },
+            body: JSON.stringify({
+                hours: 1,
+                service: null
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.detected_anomalies) {
+            displayAnomalies(data.detected_anomalies);
+            showToast('Anomaly detection completed', 'success');
+        } else {
+            showToast('No new anomalies detected', 'info');
+        }
+
+    } catch (error) {
+        console.error('Anomaly detection failed:', error);
+        showToast('Anomaly detection failed', 'error');
+    } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+
+async function analyzePatterns() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Analyzing...';
+    button.disabled = true;
+
+    try {
+        const response = await fetch('/api/v1/ai/analyze-patterns', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + btoa('admin:admin')
+            },
+            body: JSON.stringify({
+                hours: 24,
+                service: null
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.patterns) {
+            displayPatternAnalysis(data.patterns);
+            showToast('Pattern analysis completed', 'success');
+        }
+
+    } catch (error) {
+        console.error('Pattern analysis failed:', error);
+        showToast('Pattern analysis failed', 'error');
+    } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+
+function displayPatternAnalysis(patterns) {
+    const container = document.getElementById('pattern-analysis');
+
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Service Performance</h6>
+                ${formatServicePatterns(patterns.service_patterns || {})}
+            </div>
+            <div class="col-md-6">
+                <h6>Error Patterns</h6>
+                ${formatErrorPatterns(patterns.error_patterns || {})}
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <h6>Temporal Patterns</h6>
+                ${formatTemporalPatterns(patterns.temporal_patterns || {})}
+            </div>
+            <div class="col-md-6">
+                <h6>Endpoint Usage</h6>
+                ${formatEndpointPatterns(patterns.endpoint_patterns || {})}
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+function formatServicePatterns(patterns) {
+    if (Object.keys(patterns).length === 0) {
+        return '<p class="text-muted">No service patterns detected</p>';
+    }
+
+    let html = '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>Service</th><th>Health Score</th><th>Requests</th><th>Errors</th></tr></thead><tbody>';
+
+    for (const [service, data] of Object.entries(patterns)) {
+        const healthScore = data.health_score || 0;
+        const healthClass = healthScore > 80 ? 'success' : healthScore > 60 ? 'warning' : 'danger';
+
+        html += `
+            <tr>
+                <td>${service}</td>
+                <td><span class="badge bg-${healthClass}">${healthScore.toFixed(1)}</span></td>
+                <td>${data.total_requests || 0}</td>
+                <td>${data.error_count || 0}</td>
+            </tr>
+        `;
+    }
+
+    html += '</tbody></table></div>';
+    return html;
+}
+
+function formatErrorPatterns(patterns) {
+    if (patterns.no_errors) {
+        return '<p class="text-success"><i class="fas fa-check me-2"></i>No errors detected</p>';
+    }
+
+    let html = `
+        <p><strong>Total Errors:</strong> ${patterns.total_errors || 0}</p>
+        <p><strong>Error Rate:</strong> ${patterns.error_rate_per_hour || 0} per hour</p>
+    `;
+
+    if (patterns.error_types) {
+        html += '<h6 class="mt-3">Error Types:</h6><ul>';
+        for (const [type, count] of Object.entries(patterns.error_types)) {
+            html += `<li>${type}: ${count}</li>`;
+        }
+        html += '</ul>';
+    }
+
+    return html;
+}
+
+function formatTemporalPatterns(patterns) {
+    if (!patterns.peak_hours || patterns.peak_hours.length === 0) {
+        return '<p class="text-muted">No temporal patterns detected</p>';
+    }
+
+    let html = '<h6>Peak Activity Hours:</h6><ul>';
+    patterns.peak_hours.slice(0, 3).forEach(([hour, count]) => {
+        html += `<li>Hour ${hour}: ${count} requests</li>`;
+    });
+    html += '</ul>';
+
+    return html;
+}
+
+function formatEndpointPatterns(patterns) {
+    if (!patterns.top_endpoints || Object.keys(patterns.top_endpoints).length === 0) {
+        return '<p class="text-muted">No endpoint patterns detected</p>';
+    }
+
+    let html = '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>Endpoint</th><th>Requests</th><th>Avg Time</th></tr></thead><tbody>';
+
+    const endpoints = Object.entries(patterns.top_endpoints).slice(0, 5);
+    endpoints.forEach(([endpoint, data]) => {
+        html += `
+            <tr>
+                <td class="text-truncate" style="max-width: 200px;">${endpoint}</td>
+                <td>${data.request_count || 0}</td>
+                <td>${data.avg_response_time_ms || 0}ms</td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table></div>';
+    return html;
+}
+
+async function generateSummary() {
+    const summaryType = document.getElementById('summaryType').value;
+    const container = document.getElementById('log-summary');
+
+    container.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Generating summary...</span>
+            </div>
+            <p class="text-muted mt-2">AI is analyzing logs and generating summary...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch('/api/v1/ai/summarize-logs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + btoa('admin:admin')
+            },
+            body: JSON.stringify({
+                hours: 24,
+                type: summaryType
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.summary || data.raw_response) {
+            displaySummary(data, summaryType);
+        } else {
+            container.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No summary could be generated. Try again later.
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error('Summary generation failed:', error);
+        container.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Failed to generate summary: ${error.message}
+            </div>
+        `;
+    }
+}
+
+function displaySummary(data, summaryType) {
+    const container = document.getElementById('log-summary');
+
+    let html = `
+        <div class="mb-3">
+            <h6>
+                <i class="fas fa-robot me-2"></i>
+                AI Summary (${summaryType.replace('_', ' ').toUpperCase()})
+            </h6>
+            <small class="text-muted">Generated at ${new Date().toLocaleString()}</small>
+        </div>
+    `;
+
+    if (data.summary) {
+        html += `<div class="alert alert-info">${data.summary}</div>`;
+    } else if (data.raw_response) {
+        html += `<div class="alert alert-info">${data.raw_response}</div>`;
+    }
+
+    // Display structured data if available
+    if (data.critical_errors && data.critical_errors.length > 0) {
+        html += `
+            <div class="mt-3">
+                <h6>Critical Errors:</h6>
+                <ul class="list-group">
+        `;
+        data.critical_errors.forEach(error => {
+            html += `<li class="list-group-item">${error}</li>`;
+        });
+        html += '</ul></div>';
+    }
+
+    if (data.recommendations && data.recommendations.length > 0) {
+        html += `
+            <div class="mt-3">
+                <h6>Recommendations:</h6>
+                <ul class="list-group">
+        `;
+        data.recommendations.forEach(rec => {
+            html += `<li class="list-group-item">${rec}</li>`;
+        });
+        html += '</ul></div>';
+    }
+
+    if (data.metadata) {
+        html += `
+            <div class="mt-3">
+                <small class="text-muted">
+                    Based on ${data.metadata.log_count} log entries |
+                    Model: ${data.metadata.model || 'Unknown'}
+                </small>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+function triggerAnalysis() {
+    Promise.all([
+        runAnomalyDetection(),
+        analyzePatterns()
+    ]).then(() => {
+        showToast('Full AI analysis completed', 'success');
+    }).catch(error => {
+        console.error('Analysis failed:', error);
+        showToast('Analysis partially failed', 'warning');
+    });
+}
+
+// Helper functions
+function getSeverityClass(severity) {
+    switch (severity) {
+        case 'critical': return 'danger';
+        case 'high': return 'warning';
+        case 'medium': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function getPriorityClass(priority) {
+    switch (priority) {
+        case 'critical': return 'danger';
+        case 'high': return 'warning';
+        case 'medium': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function getTimeAgo(timestamp) {
+    const diff = Date.now() - new Date(timestamp).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
+
+function showToast(message, type = 'info') {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <span>${message}</span>
+            <button type="button" class="btn-close" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+
+function showError(message) {
+    document.getElementById('anomalies-card').innerHTML = `
+        <div class="alert alert-danger mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            ${message}
+        </div>
+    `;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    loadAIInsights();
+
+    // Auto-refresh every 2 minutes
+    setInterval(loadAIInsights, 120000);
+});
+</script>
+{% endblock %}
