@@ -1,0 +1,308 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>SDK Integration</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--primary:#6366f1;--secondary:#8b5cf6;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--info:#06b6d4;--bg:#f0f2ff;--surface:#fff;--surface-2:#f8f9ff;--border:rgba(99,102,241,.10);--text:#1e1b4b;--muted:#6b7280;--r:18px;--rl:26px;--rx:36px;--rf:9999px;--sh-sm:0 4px 12px rgba(99,102,241,.08),0 2px 4px rgba(0,0,0,.04);--sh-md:0 8px 28px rgba(99,102,241,.12);--sh-lg:0 16px 48px rgba(99,102,241,.16);font-family:'Inter',sans-serif;}
+body{background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased;}
+.wrap{display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:240px;flex-shrink:0;background:linear-gradient(160deg,#4f46e5 0%,#7c3aed 60%,#6d28d9 100%);border-radius:0 var(--rx) var(--rx) 0;box-shadow:var(--sh-lg);padding:1.75rem 1.1rem;display:flex;flex-direction:column;gap:.15rem;position:relative;overflow:hidden;}
+.sidebar::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:rgba(255,255,255,.07);border-radius:50%;}
+.sidebar::after{content:'';position:absolute;bottom:40px;left:-80px;width:260px;height:260px;background:rgba(255,255,255,.05);border-radius:50%;}
+.s-brand{display:flex;align-items:center;gap:.7rem;background:rgba(255,255,255,.12);border-radius:var(--r);padding:.7rem .9rem;margin-bottom:1.5rem;position:relative;z-index:1;}
+.s-brand-icon{width:38px;height:38px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.s-brand-name{font-weight:700;font-size:.9rem;color:#fff;line-height:1.2;}
+.s-brand-sub{font-size:.68rem;color:rgba(255,255,255,.6);}
+.nav-lnk{display:flex;align-items:center;gap:.6rem;color:rgba(255,255,255,.72);font-size:.83rem;font-weight:500;padding:.6rem .9rem;border-radius:10px;text-decoration:none;transition:.2s;position:relative;z-index:1;}
+.nav-lnk.active{color:#fff;background:rgba(255,255,255,.22);box-shadow:0 4px 14px rgba(0,0,0,.15);}
+.nav-lnk.active::before{content:'';position:absolute;left:0;top:25%;bottom:25%;width:3px;background:#fff;border-radius:var(--rf);}
+.nav-lnk i{width:16px;text-align:center;}
+.s-divider{border:none;border-top:1px solid rgba(255,255,255,.14);margin:.6rem 0;}
+.s-footer{margin-top:auto;position:relative;z-index:1;}
+.s-user{display:flex;align-items:center;gap:.6rem;background:rgba(255,255,255,.10);border-radius:10px;padding:.55rem .75rem;margin-bottom:.6rem;}
+.s-avatar{width:28px;height:28px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#fff;flex-shrink:0;}
+.s-uname{font-size:.78rem;color:#fff;font-weight:600;}
+.s-urole{font-size:.66rem;color:rgba(255,255,255,.55);}
+.s-logout{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;padding:.45rem;border-radius:10px;background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.32);color:rgba(255,255,255,.82);font-size:.78rem;font-weight:600;}
+.main{flex:1;overflow-y:auto;padding:1.75rem 2rem;display:flex;flex-direction:column;gap:1.2rem;}
+.ph{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;}
+.ph-title{font-size:1.45rem;font-weight:800;}.ph-sub{font-size:.82rem;color:var(--muted);margin-top:.15rem;}
+.badge{display:inline-flex;align-items:center;padding:.3em .75em;border-radius:var(--rf);font-size:.7rem;font-weight:600;}
+.badge-green{background:rgba(16,185,129,.10);color:#065f46;}
+.badge-blue{background:rgba(99,102,241,.10);color:#312e81;}
+.badge-purple{background:rgba(139,92,246,.10);color:#4c1d95;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);box-shadow:var(--sh-sm);overflow:hidden;}
+.card-hd{padding:.9rem 1.3rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-hd-title{font-weight:700;font-size:.88rem;display:flex;align-items:center;gap:.5rem;}
+.card-hd-title i{color:var(--primary);}
+.card-body{padding:1.2rem;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+
+/* Steps */
+.step-row{display:flex;align-items:flex-start;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--border);}
+.step-row:last-child{border-bottom:none;}
+.step-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;color:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(99,102,241,.3);}
+.step-content{flex:1;}
+.step-title{font-weight:700;font-size:.87rem;margin-bottom:.2rem;}
+.step-desc{font-size:.78rem;color:var(--muted);line-height:1.5;}
+
+/* Code blocks */
+.code-wrap{position:relative;margin:.7rem 0;}
+.code-block{background:#1e1b4b;border-radius:14px;padding:1.1rem 1.2rem;font-family:'Fira Code','Consolas',monospace;font-size:.77rem;line-height:1.7;overflow-x:auto;color:#c4b5fd;}
+.code-block .kw{color:#a78bfa;}
+.code-block .fn{color:#60a5fa;}
+.code-block .st{color:#86efac;}
+.code-block .cm{color:#6b7280;font-style:italic;}
+.code-block .nu{color:#f9a8d4;}
+.code-block .op{color:#e2e8f0;}
+.code-copy{position:absolute;top:.6rem;right:.7rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);border-radius:8px;padding:.25rem .55rem;font-size:.7rem;cursor:pointer;font-family:inherit;}
+.code-copy:hover{background:rgba(255,255,255,.18);}
+.code-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.4rem;}
+
+/* Feature cards */
+.feat-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--rl);padding:1.1rem 1.2rem;}
+.feat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:.7rem;}
+.feat-icon.purple{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.15));}
+.feat-icon.blue{background:linear-gradient(135deg,rgba(14,165,233,.15),rgba(6,182,212,.15));}
+.feat-icon.green{background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(52,211,153,.15));}
+.feat-title{font-weight:700;font-size:.85rem;margin-bottom:.3rem;}
+.feat-desc{font-size:.77rem;color:var(--muted);line-height:1.5;}
+
+/* Endpoint table */
+.ep-table{width:100%;border-collapse:collapse;}
+.ep-table th{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:.65rem 1rem;text-align:left;background:var(--surface-2);border-bottom:1px solid var(--border);}
+.ep-table td{padding:.65rem 1rem;font-size:.8rem;border-bottom:1px solid rgba(99,102,241,.05);vertical-align:middle;}
+.ep-table tr:last-child td{border-bottom:none;}
+.method{display:inline-flex;align-items:center;padding:.18em .6em;border-radius:6px;font-size:.7rem;font-weight:800;font-family:'Fira Code',monospace;}
+.m-get{background:rgba(16,185,129,.12);color:#059669;}
+.m-post{background:rgba(99,102,241,.12);color:#4338ca;}
+.m-delete{background:rgba(239,68,68,.12);color:#b91c1c;}
+.ep-path{font-family:'Fira Code',monospace;font-size:.78rem;color:var(--text);}
+.btn-sm{display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .85rem;border-radius:var(--rf);border:none;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.25);}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+</style></head>
+<body>
+<div class="wrap">
+<aside class="sidebar">
+  <div class="s-brand"><div class="s-brand-icon">🔭</div><div><div class="s-brand-name">Monitoring</div><div class="s-brand-sub">AI-Powered Platform</div></div></div>
+  <a class="nav-lnk" href="#"><i class="fas fa-gauge-high"></i> Overview</a>
+  <a class="nav-lnk" href="#"><i class="fas fa-cubes"></i> Services</a>
+  <a class="nav-lnk" href="#"><i class="fas fa-scroll"></i> Logs</a>
+  <a class="nav-lnk" href="#"><i class="fas fa-brain"></i> AI Insights</a>
+  <hr class="s-divider">
+  <a class="nav-lnk" href="#"><i class="fas fa-chart-area"></i> Kibana</a>
+  <a class="nav-lnk active" href="#"><i class="fas fa-plug"></i> SDK & API</a>
+  <div class="s-footer">
+    <div class="s-user"><div class="s-avatar"><i class="fas fa-user" style="font-size:.65rem;"></i></div><div><div class="s-uname">admin</div><div class="s-urole">Administrator</div></div></div>
+    <button class="s-logout"><i class="fas fa-right-from-bracket"></i> Sign Out</button>
+  </div>
+</aside>
+
+<main class="main">
+  <!-- Header -->
+  <div class="ph">
+    <div>
+      <div class="ph-title"><i class="fas fa-plug" style="color:var(--primary);margin-right:.4rem;"></i>SDK Integration Guide</div>
+      <div class="ph-sub">Connect any FastAPI microservice in under 5 minutes · No configuration required</div>
+    </div>
+    <div style="display:flex;gap:.6rem;">
+      <span class="badge badge-green"><i class="fas fa-tag" style="margin-right:.3rem;"></i>v1.0.0</span>
+      <button class="btn-sm btn-outline"><i class="fas fa-book-open"></i> Full Docs</button>
+      <button class="btn-sm btn-primary"><i class="fas fa-download"></i> Download SDK</button>
+    </div>
+  </div>
+
+  <!-- Feature highlights -->
+  <div class="three-col">
+    <div class="feat-card">
+      <div class="feat-icon purple"><i class="fas fa-bolt" style="color:var(--primary);"></i></div>
+      <div class="feat-title">Drop-in Middleware</div>
+      <div class="feat-desc">One line of code to track all requests, latency, and error rates automatically across any FastAPI service.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon blue"><i class="fas fa-rotate" style="color:#06b6d4;"></i></div>
+      <div class="feat-title">Auto Registration</div>
+      <div class="feat-desc">Services self-register on startup and push metrics every 30 seconds with zero manual configuration needed.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon green"><i class="fas fa-shield-halved" style="color:#10b981;"></i></div>
+      <div class="feat-title">Secure by Default</div>
+      <div class="feat-desc">Per-service secret keys and JWT authentication ensure only authorized services can push data to the platform.</div>
+    </div>
+  </div>
+
+  <!-- Quick start + Code -->
+  <div class="two-col">
+    <!-- Steps -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-hd-title"><i class="fas fa-list-ol"></i> Quick Start (5 steps)</div>
+        <span class="badge badge-blue">FastAPI</span>
+      </div>
+      <div class="card-body">
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Copy the SDK into your service</div>
+            <div class="step-desc">Copy the <code style="background:var(--surface-2);padding:.1em .4em;border-radius:5px;font-size:.85em;">shared/monitoring_sdk/</code> directory into your project root.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Install dependencies</div>
+            <div class="step-desc">Run <code style="background:var(--surface-2);padding:.1em .4em;border-radius:5px;font-size:.85em;">pip install aiohttp python-dotenv</code> — no other packages needed.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Add environment variables</div>
+            <div class="step-desc">Set <code style="background:var(--surface-2);padding:.1em .4em;border-radius:5px;font-size:.85em;">MONITORING_URL</code> and <code style="background:var(--surface-2);padding:.1em .4em;border-radius:5px;font-size:.85em;">YOUR_SERVICE_SECRET</code> in your <code style="background:var(--surface-2);padding:.1em .4em;border-radius:5px;font-size:.85em;">.env</code> file.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Register the secret in monitoring core</div>
+            <div class="step-desc">Add <code style="background:var(--surface-2);padding:.1em .4em;border-radius:5px;font-size:.85em;">YOUR_SERVICE_SECRET=...</code> to the monitoring core <code style="background:var(--surface-2);padding:.1em .4em;border-radius:5px;font-size:.85em;">.env</code>.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Add middleware and start your service</div>
+            <div class="step-desc">Paste the code snippet → your service will auto-register and appear on the dashboard within 30 seconds.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Code snippet -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-hd-title"><i class="fas fa-code"></i> Integration Code</div>
+        <span class="badge badge-purple">Python · FastAPI</span>
+      </div>
+      <div class="card-body">
+        <div class="code-label">main.py — Add to your FastAPI service</div>
+        <div class="code-wrap">
+          <pre class="code-block"><span class="kw">from</span> <span class="op">contextlib</span> <span class="kw">import</span> asynccontextmanager
+<span class="kw">import</span> <span class="op">os</span>
+<span class="kw">from</span> <span class="op">fastapi</span> <span class="kw">import</span> FastAPI
+<span class="kw">from</span> <span class="op">monitoring_sdk.middleware</span> <span class="kw">import</span> MonitoringMiddleware
+<span class="kw">from</span> <span class="op">monitoring_sdk.client</span> <span class="kw">import</span> MonitoringClient
+
+<span class="cm"># Lifespan: register on startup, cleanup on shutdown</span>
+<span class="op">@asynccontextmanager</span>
+<span class="kw">async def</span> <span class="fn">lifespan</span>(app: FastAPI):
+    client = MonitoringClient(
+        monitoring_url=os.<span class="fn">getenv</span>(<span class="st">"MONITORING_URL"</span>),
+        service_name=<span class="st">"my-service"</span>,
+        service_secret=os.<span class="fn">getenv</span>(<span class="st">"MY_SERVICE_SECRET"</span>)
+    )
+    <span class="kw">await</span> client.<span class="fn">register</span>(
+        service_url=<span class="st">f"http://localhost:</span><span class="nu">8005</span><span class="st">"</span>,
+        version=<span class="st">"1.0.0"</span>,
+        endpoints=[<span class="st">"/health"</span>, <span class="st">"/api/items"</span>]
+    )
+    <span class="kw">yield</span>
+
+app = <span class="fn">FastAPI</span>(lifespan=lifespan)
+
+<span class="cm"># One line — tracks all requests automatically</span>
+app.<span class="fn">add_middleware</span>(
+    MonitoringMiddleware,
+    monitoring_url=os.<span class="fn">getenv</span>(<span class="st">"MONITORING_URL"</span>),
+    service_name=<span class="st">"my-service"</span>,
+    service_secret=os.<span class="fn">getenv</span>(<span class="st">"MY_SERVICE_SECRET"</span>)
+)</pre>
+          <button class="code-copy"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+
+        <div class="code-label" style="margin-top:.9rem;">.env — Environment variables</div>
+        <div class="code-wrap">
+          <pre class="code-block"><span class="cm"># Monitoring platform URL</span>
+<span class="st">MONITORING_URL</span>=<span class="op">http://localhost:8000</span>
+
+<span class="cm"># Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"</span>
+<span class="st">MY_SERVICE_SECRET</span>=<span class="op">your-generated-secret-here</span></pre>
+          <button class="code-copy"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API Reference -->
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-hd-title"><i class="fas fa-table-list"></i> Monitoring API Reference</div>
+      <span class="badge badge-blue">REST · JSON</span>
+    </div>
+    <table class="ep-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Description</th>
+          <th>Auth</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method m-post">POST</span></td>
+          <td class="ep-path">/api/v1/register-service</td>
+          <td>Register a new microservice with the platform</td>
+          <td><span class="badge badge-purple">Service Secret</span></td>
+        </tr>
+        <tr>
+          <td><span class="method m-post">POST</span></td>
+          <td class="ep-path">/api/v1/metrics/</td>
+          <td>Push CPU, memory, latency and error rate metrics</td>
+          <td><span class="badge badge-purple">Service Secret</span></td>
+        </tr>
+        <tr>
+          <td><span class="method m-post">POST</span></td>
+          <td class="ep-path">/api/v1/logs/</td>
+          <td>Push structured log entries from any service</td>
+          <td><span class="badge badge-purple">Service Secret</span></td>
+        </tr>
+        <tr>
+          <td><span class="method m-get">GET</span></td>
+          <td class="ep-path">/api/v1/services</td>
+          <td>List all registered services and their status</td>
+          <td><span class="badge badge-blue">JWT</span></td>
+        </tr>
+        <tr>
+          <td><span class="method m-get">GET</span></td>
+          <td class="ep-path">/api/v1/health/{service}</td>
+          <td>Get real-time health data for a specific service</td>
+          <td><span class="badge badge-blue">JWT</span></td>
+        </tr>
+        <tr>
+          <td><span class="method m-get">GET</span></td>
+          <td class="ep-path">/api/v1/ai/anomalies</td>
+          <td>Retrieve AI-detected anomalies (latest run)</td>
+          <td><span class="badge badge-blue">JWT</span></td>
+        </tr>
+        <tr>
+          <td><span class="method m-post">POST</span></td>
+          <td class="ep-path">/api/v1/ai/summarize</td>
+          <td>Ask AI to summarize logs for a given service</td>
+          <td><span class="badge badge-blue">JWT</span></td>
+        </tr>
+        <tr>
+          <td><span class="method m-get">GET</span></td>
+          <td class="ep-path">/api/v1/ai/insights</td>
+          <td>Full AI insights dashboard payload (patterns + predictions)</td>
+          <td><span class="badge badge-blue">JWT</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</div>
+</body></html>

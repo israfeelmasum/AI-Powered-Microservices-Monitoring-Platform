@@ -68,11 +68,14 @@ A production-ready **centralized monitoring and observability platform** for mic
 ### Services Health
 ![Services](screenshots/output/dashboard_services.png)
 
+### Live Log Feed
+![Logs](screenshots/output/dashboard_logs.png)
+
 ### AI Engine & Anomaly Detection
 ![AI Insights](screenshots/output/dashboard_ai.png)
 
-### Live Log Feed
-![Logs](screenshots/output/dashboard_logs.png)
+### SDK Integration Guide
+![SDK](screenshots/output/dashboard_sdk.png)
 
 ---
 

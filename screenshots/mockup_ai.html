@@ -1,0 +1,368 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>AI Insights</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--primary:#6366f1;--secondary:#8b5cf6;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--info:#06b6d4;--bg:#f0f2ff;--surface:#fff;--surface-2:#f8f9ff;--border:rgba(99,102,241,.10);--text:#1e1b4b;--muted:#6b7280;--r:18px;--rl:26px;--rx:36px;--rf:9999px;--sh-sm:0 4px 12px rgba(99,102,241,.08),0 2px 4px rgba(0,0,0,.04);--sh-md:0 8px 28px rgba(99,102,241,.12);--sh-lg:0 16px 48px rgba(99,102,241,.16);font-family:'Inter',sans-serif;}
+body{background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased;}
+.wrap{display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:240px;flex-shrink:0;background:linear-gradient(160deg,#4f46e5 0%,#7c3aed 60%,#6d28d9 100%);border-radius:0 var(--rx) var(--rx) 0;box-shadow:var(--sh-lg);padding:1.75rem 1.1rem;display:flex;flex-direction:column;gap:.15rem;position:relative;overflow:hidden;}
+.sidebar::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:rgba(255,255,255,.07);border-radius:50%;}
+.sidebar::after{content:'';position:absolute;bottom:40px;left:-80px;width:260px;height:260px;background:rgba(255,255,255,.05);border-radius:50%;}
+.s-brand{display:flex;align-items:center;gap:.7rem;background:rgba(255,255,255,.12);border-radius:var(--r);padding:.7rem .9rem;margin-bottom:1.5rem;position:relative;z-index:1;}
+.s-brand-icon{width:38px;height:38px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.s-brand-name{font-weight:700;font-size:.9rem;color:#fff;line-height:1.2;}
+.s-brand-sub{font-size:.68rem;color:rgba(255,255,255,.6);}
+.nav-lnk{display:flex;align-items:center;gap:.6rem;color:rgba(255,255,255,.72);font-size:.83rem;font-weight:500;padding:.6rem .9rem;border-radius:10px;text-decoration:none;transition:.2s;position:relative;z-index:1;}
+.nav-lnk.active{color:#fff;background:rgba(255,255,255,.22);box-shadow:0 4px 14px rgba(0,0,0,.15);}
+.nav-lnk.active::before{content:'';position:absolute;left:0;top:25%;bottom:25%;width:3px;background:#fff;border-radius:var(--rf);}
+.nav-lnk i{width:16px;text-align:center;}
+.s-divider{border:none;border-top:1px solid rgba(255,255,255,.14);margin:.6rem 0;}
+.s-footer{margin-top:auto;position:relative;z-index:1;}
+.s-user{display:flex;align-items:center;gap:.6rem;background:rgba(255,255,255,.10);border-radius:10px;padding:.55rem .75rem;margin-bottom:.6rem;}
+.s-avatar{width:28px;height:28px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#fff;flex-shrink:0;}
+.s-uname{font-size:.78rem;color:#fff;font-weight:600;}
+.s-urole{font-size:.66rem;color:rgba(255,255,255,.55);}
+.s-logout{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;padding:.45rem;border-radius:10px;background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.32);color:rgba(255,255,255,.82);font-size:.78rem;font-weight:600;}
+.main{flex:1;overflow-y:auto;padding:1.75rem 2rem;display:flex;flex-direction:column;gap:1.2rem;}
+.ph{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;}
+.ph-title{font-size:1.45rem;font-weight:800;}.ph-sub{font-size:.82rem;color:var(--muted);margin-top:.15rem;}
+.ph-right{display:flex;gap:.6rem;align-items:center;}
+.badge{display:inline-flex;align-items:center;padding:.3em .75em;border-radius:var(--rf);font-size:.7rem;font-weight:600;}
+.badge-green{background:rgba(16,185,129,.10);color:#065f46;}
+.badge-yellow{background:rgba(245,158,11,.10);color:#92400e;}
+.badge-red{background:rgba(239,68,68,.10);color:#991b1b;}
+.badge-blue{background:rgba(99,102,241,.10);color:#312e81;}
+.badge-purple{background:rgba(139,92,246,.10);color:#4c1d95;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);box-shadow:var(--sh-sm);overflow:hidden;}
+.card-hd{padding:.9rem 1.3rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-hd-title{font-weight:700;font-size:.88rem;display:flex;align-items:center;gap:.5rem;}
+.card-hd-title i{color:var(--primary);}
+.card-body{padding:1.2rem;}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+.kpi{border-radius:var(--rl);color:#fff;padding:1.15rem 1.3rem;position:relative;overflow:hidden;box-shadow:var(--sh-md);}
+.kpi::before{content:'';position:absolute;top:-35px;right:-35px;width:120px;height:120px;background:rgba(255,255,255,.12);border-radius:50%;}
+.kpi-icon{width:38px;height:38px;background:rgba(255,255,255,.18);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:.5rem;position:relative;z-index:1;}
+.kpi-val{font-size:1.7rem;font-weight:800;line-height:1;position:relative;z-index:1;}
+.kpi-label{font-size:.68rem;opacity:.82;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-top:.2rem;position:relative;z-index:1;}
+.kpi.purple{background:linear-gradient(135deg,#6366f1,#8b5cf6);}
+.kpi.blue{background:linear-gradient(135deg,#0ea5e9,#06b6d4);}
+.kpi.green{background:linear-gradient(135deg,#10b981,#34d399);}
+.kpi.red{background:linear-gradient(135deg,#ef4444,#f43f5e);}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+
+/* Anomaly cards */
+.anomaly-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1.1rem 1.2rem;box-shadow:var(--sh-sm);position:relative;overflow:hidden;}
+.anomaly-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;border-radius:4px 0 0 4px;}
+.anomaly-card.critical::before{background:var(--danger);}
+.anomaly-card.warning::before{background:var(--warning);}
+.anomaly-card.info::before{background:var(--primary);}
+.ac-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.55rem;}
+.ac-title{font-weight:700;font-size:.85rem;color:var(--text);}
+.ac-svc{font-size:.7rem;color:var(--muted);margin-top:.15rem;}
+.ac-conf{font-size:.7rem;font-weight:700;padding:.2em .55em;border-radius:var(--rf);}
+.conf-high{background:rgba(239,68,68,.12);color:#b91c1c;}
+.conf-med{background:rgba(245,158,11,.12);color:#b45309;}
+.conf-low{background:rgba(99,102,241,.10);color:#4338ca;}
+.ac-desc{font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:.7rem;}
+.ac-meta{display:flex;gap:.75rem;font-size:.7rem;color:var(--muted);}
+.ac-meta i{margin-right:.25rem;color:var(--primary);}
+
+/* Model status */
+.model-row{display:flex;align-items:center;justify-content:space-between;padding:.65rem 0;border-bottom:1px solid var(--border);}
+.model-row:last-child{border-bottom:none;}
+.model-info{display:flex;align-items:center;gap:.7rem;}
+.model-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;}
+.model-icon.purple{background:rgba(99,102,241,.12);}
+.model-icon.blue{background:rgba(6,182,212,.12);}
+.model-icon.green{background:rgba(16,185,129,.12);}
+.model-name{font-weight:600;font-size:.83rem;}
+.model-size{font-size:.7rem;color:var(--muted);}
+.model-stats{display:flex;align-items:center;gap:1rem;}
+.model-stat{text-align:right;}
+.model-stat-val{font-size:.85rem;font-weight:700;color:var(--text);}
+.model-stat-label{font-size:.67rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.dot-green{background:#10b981;}
+.dot-yellow{background:#f59e0b;}
+
+/* Pattern bars */
+.pattern-item{margin-bottom:1rem;}
+.pattern-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem;}
+.pattern-label{font-size:.8rem;font-weight:600;}
+.pattern-pct{font-size:.78rem;font-weight:700;color:var(--primary);}
+.pattern-bar{height:8px;background:#e5e7eb;border-radius:var(--rf);overflow:hidden;}
+.pattern-fill{height:100%;border-radius:var(--rf);}
+
+/* Prediction timeline */
+.pred-item{display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);}
+.pred-item:last-child{border-bottom:none;}
+.pred-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;}
+.pred-icon.up{background:rgba(239,68,68,.12);color:#dc2626;}
+.pred-icon.down{background:rgba(16,185,129,.12);color:#059669;}
+.pred-icon.flat{background:rgba(99,102,241,.10);color:var(--primary);}
+.pred-text{font-size:.8rem;font-weight:600;color:var(--text);}
+.pred-sub{font-size:.72rem;color:var(--muted);margin-top:.1rem;}
+.pred-conf-bar{width:60px;height:6px;background:#e5e7eb;border-radius:var(--rf);overflow:hidden;margin-top:.35rem;}
+.pred-conf-fill{height:100%;border-radius:var(--rf);background:var(--primary);}
+
+.ai-badge{display:inline-flex;align-items:center;gap:.35rem;padding:.3em .75em;border-radius:var(--rf);font-size:.72rem;font-weight:700;background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.12));color:var(--primary);border:1px solid rgba(99,102,241,.18);}
+.ai-badge i{font-size:.7rem;}
+.btn-sm{display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .85rem;border-radius:var(--rf);border:1px solid var(--border);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;background:transparent;color:var(--text);}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:0 2px 8px rgba(99,102,241,.25);}
+</style></head>
+<body>
+<div class="wrap">
+<aside class="sidebar">
+  <div class="s-brand"><div class="s-brand-icon">🔭</div><div><div class="s-brand-name">Monitoring</div><div class="s-brand-sub">AI-Powered Platform</div></div></div>
+  <a class="nav-lnk" href="#"><i class="fas fa-gauge-high"></i> Overview</a>
+  <a class="nav-lnk" href="#"><i class="fas fa-cubes"></i> Services</a>
+  <a class="nav-lnk" href="#"><i class="fas fa-scroll"></i> Logs</a>
+  <a class="nav-lnk active" href="#"><i class="fas fa-brain"></i> AI Insights</a>
+  <hr class="s-divider">
+  <a class="nav-lnk" href="#"><i class="fas fa-chart-area"></i> Kibana</a>
+  <a class="nav-lnk" href="#"><i class="fas fa-book-open"></i> API Docs</a>
+  <div class="s-footer">
+    <div class="s-user"><div class="s-avatar"><i class="fas fa-user" style="font-size:.65rem;"></i></div><div><div class="s-uname">admin</div><div class="s-urole">Administrator</div></div></div>
+    <button class="s-logout"><i class="fas fa-right-from-bracket"></i> Sign Out</button>
+  </div>
+</aside>
+
+<main class="main">
+  <!-- Header -->
+  <div class="ph">
+    <div>
+      <div class="ph-title"><i class="fas fa-brain" style="color:var(--primary);margin-right:.4rem;"></i>AI Insights</div>
+      <div class="ph-sub">Powered by Ollama · Mistral 7B · Local inference · No cloud costs</div>
+    </div>
+    <div class="ph-right">
+      <span class="ai-badge"><i class="fas fa-circle" style="color:#10b981;font-size:.5rem;"></i>Model Online</span>
+      <button class="btn-sm btn-primary"><i class="fas fa-rotate"></i> Run Analysis</button>
+    </div>
+  </div>
+
+  <!-- KPI row -->
+  <div class="kpi-row">
+    <div class="kpi red">
+      <div class="kpi-icon"><i class="fas fa-triangle-exclamation"></i></div>
+      <div class="kpi-val">3</div>
+      <div class="kpi-label">Active Anomalies</div>
+    </div>
+    <div class="kpi purple">
+      <div class="kpi-icon"><i class="fas fa-waveform-lines"></i></div>
+      <div class="kpi-val">94%</div>
+      <div class="kpi-label">Avg Confidence</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-icon"><i class="fas fa-magnifying-glass-chart"></i></div>
+      <div class="kpi-val">12</div>
+      <div class="kpi-label">Patterns Found</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+      <div class="kpi-val">7</div>
+      <div class="kpi-label">Predictions Made</div>
+    </div>
+  </div>
+
+  <!-- Anomalies + Patterns row -->
+  <div class="two-col">
+    <!-- Anomaly Detection -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-hd-title"><i class="fas fa-triangle-exclamation"></i> Anomaly Detection</div>
+        <span class="badge badge-red">3 Active</span>
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:.75rem;">
+        <div class="anomaly-card critical">
+          <div class="ac-top">
+            <div>
+              <div class="ac-title">Database Connection Exhaustion</div>
+              <div class="ac-svc"><i class="fas fa-server" style="margin-right:.25rem;"></i>inventory-service · Port 8004</div>
+            </div>
+            <span class="ac-conf conf-high">97% confidence</span>
+          </div>
+          <div class="ac-desc">Connection pool hit max capacity (20/20). 142 requests queued. Pattern matches historical outage from 2026-04-18. Immediate action required.</div>
+          <div class="ac-meta"><span><i class="fas fa-clock"></i>14:31:54</span><span><i class="fas fa-tag"></i>Critical</span><span><i class="fas fa-rotate"></i>3 occurrences</span></div>
+        </div>
+        <div class="anomaly-card warning">
+          <div class="ac-top">
+            <div>
+              <div class="ac-title">Payment Webhook Timeout Spike</div>
+              <div class="ac-svc"><i class="fas fa-server" style="margin-right:.25rem;"></i>payment-service · Port 8003</div>
+            </div>
+            <span class="ac-conf conf-med">89% confidence</span>
+          </div>
+          <div class="ac-desc">Stripe webhook timeouts 4× above baseline. Latency p99=30.4s vs normal p99=1.2s. Possible upstream Stripe degradation or network partition.</div>
+          <div class="ac-meta"><span><i class="fas fa-clock"></i>14:32:07</span><span><i class="fas fa-tag"></i>Warning</span><span><i class="fas fa-rotate"></i>7 occurrences</span></div>
+        </div>
+        <div class="anomaly-card info">
+          <div class="ac-top">
+            <div>
+              <div class="ac-title">Order Service Slow Query Pattern</div>
+              <div class="ac-svc"><i class="fas fa-server" style="margin-right:.25rem;"></i>order-service · Port 8002</div>
+            </div>
+            <span class="ac-conf conf-low">76% confidence</span>
+          </div>
+          <div class="ac-desc">Repeated slow queries on orders table. Consistent with missing index on status+created_at columns. Recommend EXPLAIN ANALYZE.</div>
+          <div class="ac-meta"><span><i class="fas fa-clock"></i>14:31:42</span><span><i class="fas fa-tag"></i>Performance</span><span><i class="fas fa-rotate"></i>12 occurrences</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pattern Analysis -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-hd-title"><i class="fas fa-waveform-lines"></i> Pattern Analysis</div>
+        <span class="badge badge-blue">12 Patterns</span>
+      </div>
+      <div class="card-body">
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.8rem;">Error Distribution by Service</div>
+        <div class="pattern-item">
+          <div class="pattern-header"><span class="pattern-label">inventory-service</span><span class="pattern-pct">41%</span></div>
+          <div class="pattern-bar"><div class="pattern-fill" style="width:41%;background:linear-gradient(90deg,#ef4444,#f43f5e);"></div></div>
+        </div>
+        <div class="pattern-item">
+          <div class="pattern-header"><span class="pattern-label">payment-service</span><span class="pattern-pct">29%</span></div>
+          <div class="pattern-bar"><div class="pattern-fill" style="width:29%;background:linear-gradient(90deg,#f59e0b,#ef4444);"></div></div>
+        </div>
+        <div class="pattern-item">
+          <div class="pattern-header"><span class="pattern-label">order-service</span><span class="pattern-pct">18%</span></div>
+          <div class="pattern-bar"><div class="pattern-fill" style="width:18%;background:linear-gradient(90deg,#6366f1,#8b5cf6);"></div></div>
+        </div>
+        <div class="pattern-item">
+          <div class="pattern-header"><span class="pattern-label">user-service</span><span class="pattern-pct">8%</span></div>
+          <div class="pattern-bar"><div class="pattern-fill" style="width:8%;background:linear-gradient(90deg,#0ea5e9,#06b6d4);"></div></div>
+        </div>
+        <div class="pattern-item" style="margin-bottom:0;">
+          <div class="pattern-header"><span class="pattern-label">note-service</span><span class="pattern-pct">4%</span></div>
+          <div class="pattern-bar"><div class="pattern-fill" style="width:4%;background:linear-gradient(90deg,#10b981,#34d399);"></div></div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);margin:1rem 0;"></div>
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.8rem;">Peak Error Time Windows</div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+          <span class="badge badge-red">02:00–04:00</span>
+          <span class="badge badge-yellow">10:00–11:30</span>
+          <span class="badge badge-yellow">14:00–15:30</span>
+          <span class="badge badge-blue">Weekday pattern detected</span>
+        </div>
+        <div style="margin-top:.9rem;padding:.7rem;background:rgba(99,102,241,.05);border-radius:12px;font-size:.78rem;color:var(--text);line-height:1.5;">
+          <i class="fas fa-lightbulb" style="color:var(--warning);margin-right:.35rem;"></i>
+          <strong>AI Recommendation:</strong> Schedule maintenance windows during 06:00–08:00 when error rates are historically lowest. Add database connection pooling config.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Model Status + Predictions -->
+  <div class="two-col">
+    <!-- LLM Model Status -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-hd-title"><i class="fas fa-microchip"></i> AI Model Status</div>
+        <span class="badge badge-green"><i class="fas fa-circle" style="font-size:.5rem;margin-right:.3rem;"></i>Online</span>
+      </div>
+      <div class="card-body">
+        <div class="model-row">
+          <div class="model-info">
+            <div class="model-icon purple"><i class="fas fa-brain" style="color:#6366f1;"></i></div>
+            <div>
+              <div class="model-name">Mistral 7B</div>
+              <div class="model-size">~4.1 GB · Primary model</div>
+            </div>
+          </div>
+          <div class="model-stats">
+            <div class="model-stat"><div class="model-stat-val">142ms</div><div class="model-stat-label">Avg Latency</div></div>
+            <div class="model-stat"><div class="model-stat-val">1,842</div><div class="model-stat-label">Calls Today</div></div>
+            <div><span class="dot dot-green"></span></div>
+          </div>
+        </div>
+        <div class="model-row">
+          <div class="model-info">
+            <div class="model-icon blue"><i class="fas fa-robot" style="color:#06b6d4;"></i></div>
+            <div>
+              <div class="model-name">LLaMA 2 7B</div>
+              <div class="model-size">~3.8 GB · Log summarization</div>
+            </div>
+          </div>
+          <div class="model-stats">
+            <div class="model-stat"><div class="model-stat-val">198ms</div><div class="model-stat-label">Avg Latency</div></div>
+            <div class="model-stat"><div class="model-stat-val">421</div><div class="model-stat-label">Calls Today</div></div>
+            <div><span class="dot dot-green"></span></div>
+          </div>
+        </div>
+        <div class="model-row">
+          <div class="model-info">
+            <div class="model-icon green"><i class="fas fa-bolt" style="color:#10b981;"></i></div>
+            <div>
+              <div class="model-name">Qwen3 0.6B</div>
+              <div class="model-size">~400 MB · Fast analysis</div>
+            </div>
+          </div>
+          <div class="model-stats">
+            <div class="model-stat"><div class="model-stat-val">28ms</div><div class="model-stat-label">Avg Latency</div></div>
+            <div class="model-stat"><div class="model-stat-val">3,102</div><div class="model-stat-label">Calls Today</div></div>
+            <div><span class="dot dot-green"></span></div>
+          </div>
+        </div>
+        <div style="margin-top:1rem;padding:.8rem;background:var(--surface-2);border-radius:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.4rem;"><span style="color:var(--muted);">Ollama instance</span><span style="font-weight:700;color:var(--success);">Running locally</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.4rem;"><span style="color:var(--muted);">Total inferences today</span><span style="font-weight:700;">5,365</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:var(--muted);">Cloud API cost</span><span style="font-weight:700;color:var(--success);">$0.00</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Predictive Analytics -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-hd-title"><i class="fas fa-chart-line"></i> Predictive Analytics</div>
+        <span class="badge badge-purple">Next 6 hours</span>
+      </div>
+      <div class="card-body">
+        <div class="pred-item">
+          <div class="pred-icon up"><i class="fas fa-arrow-trend-up"></i></div>
+          <div style="flex:1;">
+            <div class="pred-text">inventory-service outage likely</div>
+            <div class="pred-sub">DB pool exhaustion will cause full failure within ~45 min at current rate</div>
+            <div class="pred-conf-bar"><div class="pred-conf-fill" style="width:91%;background:linear-gradient(90deg,#ef4444,#f43f5e);"></div></div>
+          </div>
+          <span style="font-size:.72rem;font-weight:700;color:#dc2626;">91%</span>
+        </div>
+        <div class="pred-item">
+          <div class="pred-icon up"><i class="fas fa-arrow-trend-up"></i></div>
+          <div style="flex:1;">
+            <div class="pred-text">Traffic spike at 15:00–17:00</div>
+            <div class="pred-sub">Based on 14-day average — expect 2.3× baseline requests during peak</div>
+            <div class="pred-conf-bar"><div class="pred-conf-fill" style="width:84%;"></div></div>
+          </div>
+          <span style="font-size:.72rem;font-weight:700;color:var(--primary);">84%</span>
+        </div>
+        <div class="pred-item">
+          <div class="pred-icon flat"><i class="fas fa-minus"></i></div>
+          <div style="flex:1;">
+            <div class="pred-text">payment-service latency will stabilize</div>
+            <div class="pred-sub">Webhook retries self-resolving — latency trending back to baseline in ~20 min</div>
+            <div class="pred-conf-bar"><div class="pred-conf-fill" style="width:72%;background:linear-gradient(90deg,#10b981,#34d399);"></div></div>
+          </div>
+          <span style="font-size:.72rem;font-weight:700;color:#059669;">72%</span>
+        </div>
+        <div class="pred-item">
+          <div class="pred-icon down"><i class="fas fa-arrow-trend-down"></i></div>
+          <div style="flex:1;">
+            <div class="pred-text">Error rate to drop after 16:00</div>
+            <div class="pred-sub">Historical pattern: maintenance window and lower traffic reduce errors 60%</div>
+            <div class="pred-conf-bar"><div class="pred-conf-fill" style="width:68%;background:linear-gradient(90deg,#10b981,#34d399);"></div></div>
+          </div>
+          <span style="font-size:.72rem;font-weight:700;color:#059669;">68%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+</body></html>

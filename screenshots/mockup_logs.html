@@ -1,0 +1,292 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Logs</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--primary:#6366f1;--secondary:#8b5cf6;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--info:#06b6d4;--bg:#f0f2ff;--surface:#fff;--surface-2:#f8f9ff;--border:rgba(99,102,241,.10);--text:#1e1b4b;--muted:#6b7280;--r:18px;--rl:26px;--rx:36px;--rf:9999px;--sh-sm:0 4px 12px rgba(99,102,241,.08),0 2px 4px rgba(0,0,0,.04);--sh-md:0 8px 28px rgba(99,102,241,.12);--sh-lg:0 16px 48px rgba(99,102,241,.16);font-family:'Inter',sans-serif;}
+body{background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased;}
+.wrap{display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:240px;flex-shrink:0;background:linear-gradient(160deg,#4f46e5 0%,#7c3aed 60%,#6d28d9 100%);border-radius:0 var(--rx) var(--rx) 0;box-shadow:var(--sh-lg);padding:1.75rem 1.1rem;display:flex;flex-direction:column;gap:.15rem;position:relative;overflow:hidden;}
+.sidebar::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:rgba(255,255,255,.07);border-radius:50%;}
+.sidebar::after{content:'';position:absolute;bottom:40px;left:-80px;width:260px;height:260px;background:rgba(255,255,255,.05);border-radius:50%;}
+.s-brand{display:flex;align-items:center;gap:.7rem;background:rgba(255,255,255,.12);border-radius:var(--r);padding:.7rem .9rem;margin-bottom:1.5rem;position:relative;z-index:1;}
+.s-brand-icon{width:38px;height:38px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.s-brand-name{font-weight:700;font-size:.9rem;color:#fff;line-height:1.2;}
+.s-brand-sub{font-size:.68rem;color:rgba(255,255,255,.6);}
+.nav-lnk{display:flex;align-items:center;gap:.6rem;color:rgba(255,255,255,.72);font-size:.83rem;font-weight:500;padding:.6rem .9rem;border-radius:10px;text-decoration:none;transition:.2s;position:relative;z-index:1;}
+.nav-lnk.active{color:#fff;background:rgba(255,255,255,.22);box-shadow:0 4px 14px rgba(0,0,0,.15);}
+.nav-lnk.active::before{content:'';position:absolute;left:0;top:25%;bottom:25%;width:3px;background:#fff;border-radius:var(--rf);}
+.nav-lnk i{width:16px;text-align:center;}
+.s-divider{border:none;border-top:1px solid rgba(255,255,255,.14);margin:.6rem 0;}
+.s-footer{margin-top:auto;position:relative;z-index:1;}
+.s-user{display:flex;align-items:center;gap:.6rem;background:rgba(255,255,255,.10);border-radius:10px;padding:.55rem .75rem;margin-bottom:.6rem;}
+.s-avatar{width:28px;height:28px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#fff;flex-shrink:0;}
+.s-uname{font-size:.78rem;color:#fff;font-weight:600;}
+.s-urole{font-size:.66rem;color:rgba(255,255,255,.55);}
+.s-logout{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;padding:.45rem;border-radius:10px;background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.32);color:rgba(255,255,255,.82);font-size:.78rem;font-weight:600;}
+.main{flex:1;overflow-y:auto;padding:1.75rem 2rem;display:flex;flex-direction:column;gap:1.2rem;}
+.ph{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;}
+.ph-title{font-size:1.45rem;font-weight:800;}.ph-sub{font-size:.82rem;color:var(--muted);margin-top:.15rem;}
+.ph-right{display:flex;gap:.6rem;align-items:center;}
+.badge{display:inline-flex;align-items:center;padding:.3em .75em;border-radius:var(--rf);font-size:.7rem;font-weight:600;}
+.badge-green{background:rgba(16,185,129,.10);color:#065f46;}
+.badge-yellow{background:rgba(245,158,11,.10);color:#92400e;}
+.badge-red{background:rgba(239,68,68,.10);color:#991b1b;}
+.badge-blue{background:rgba(99,102,241,.10);color:#312e81;}
+.badge-gray{background:#f3f4f6;color:#374151;}
+.badge-purple{background:rgba(139,92,246,.10);color:#4c1d95;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);box-shadow:var(--sh-sm);overflow:hidden;}
+.card-hd{padding:.95rem 1.3rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;}
+.card-hd-title{font-weight:700;font-size:.88rem;display:flex;align-items:center;gap:.5rem;}
+.card-hd-title i{color:var(--primary);}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+.kpi{border-radius:var(--rl);color:#fff;padding:1.15rem 1.3rem;position:relative;overflow:hidden;box-shadow:var(--sh-md);}
+.kpi::before{content:'';position:absolute;top:-35px;right:-35px;width:120px;height:120px;background:rgba(255,255,255,.12);border-radius:50%;}
+.kpi-icon{width:38px;height:38px;background:rgba(255,255,255,.18);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:.5rem;position:relative;z-index:1;}
+.kpi-val{font-size:1.7rem;font-weight:800;line-height:1;position:relative;z-index:1;}
+.kpi-label{font-size:.68rem;opacity:.82;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-top:.2rem;position:relative;z-index:1;}
+.kpi.purple{background:linear-gradient(135deg,#6366f1,#8b5cf6);}
+.kpi.blue{background:linear-gradient(135deg,#0ea5e9,#06b6d4);}
+.kpi.green{background:linear-gradient(135deg,#10b981,#34d399);}
+.kpi.red{background:linear-gradient(135deg,#ef4444,#f43f5e);}
+.kpi.orange{background:linear-gradient(135deg,#f59e0b,#ef4444);}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;padding:.95rem 1.3rem;}
+.search-wrap{position:relative;flex:1;min-width:240px;}
+.search-wrap i{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;}
+.search-input{width:100%;padding:.55rem .9rem .55rem 2.2rem;border:1px solid var(--border);border-radius:var(--rf);font-size:.82rem;font-family:inherit;color:var(--text);background:var(--surface-2);outline:none;transition:.2s;}
+.search-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.08);}
+.filter-select{padding:.5rem .8rem;border:1px solid var(--border);border-radius:var(--rf);font-size:.8rem;font-family:inherit;color:var(--text);background:var(--surface-2);outline:none;cursor:pointer;}
+.btn-sm{display:inline-flex;align-items:center;gap:.4rem;padding:.48rem .9rem;border-radius:var(--rf);border:none;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.25);}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+
+/* Log table */
+.log-table{width:100%;border-collapse:collapse;}
+.log-table th{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:.75rem 1rem;text-align:left;background:var(--surface-2);border-bottom:1px solid var(--border);}
+.log-table td{padding:.7rem 1rem;font-size:.8rem;border-bottom:1px solid rgba(99,102,241,.05);vertical-align:middle;}
+.log-table tr:last-child td{border-bottom:none;}
+.log-table tr:hover td{background:rgba(99,102,241,.02);}
+.log-level{display:inline-flex;align-items:center;gap:.3rem;padding:.2em .6em;border-radius:var(--rf);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+.lvl-error{background:rgba(239,68,68,.12);color:#b91c1c;}
+.lvl-warn{background:rgba(245,158,11,.12);color:#b45309;}
+.lvl-info{background:rgba(99,102,241,.10);color:#4338ca;}
+.lvl-debug{background:rgba(107,114,128,.10);color:#374151;}
+.svc-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.18em .55em;border-radius:6px;font-size:.7rem;font-weight:600;background:rgba(99,102,241,.07);color:var(--primary);}
+.mono{font-family:'Fira Mono','Consolas',monospace;font-size:.78rem;color:var(--text);}
+.ts{font-size:.73rem;color:var(--muted);white-space:nowrap;}
+.status-code{font-family:'Fira Mono',monospace;font-size:.78rem;font-weight:700;}
+.sc-2xx{color:#059669;}.sc-4xx{color:#d97706;}.sc-5xx{color:#dc2626;}
+.pag{display:flex;align-items:center;gap:.5rem;justify-content:space-between;padding:.9rem 1.3rem;border-top:1px solid var(--border);}
+.pag-info{font-size:.78rem;color:var(--muted);}
+.pag-btns{display:flex;gap:.35rem;}
+.pag-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:.72rem;cursor:pointer;color:var(--text);}
+.pag-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.live-dot{width:8px;height:8px;background:#10b981;border-radius:50%;display:inline-block;margin-right:5px;box-shadow:0 0 0 3px rgba(16,185,129,.2);animation:pulse 1.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(16,185,129,.2);}50%{box-shadow:0 0 0 6px rgba(16,185,129,.05);}}
+</style></head>
+<body>
+<div class="wrap">
+<aside class="sidebar">
+  <div class="s-brand"><div class="s-brand-icon">🔭</div><div><div class="s-brand-name">Monitoring</div><div class="s-brand-sub">AI-Powered Platform</div></div></div>
+  <a class="nav-lnk" href="#"><i class="fas fa-gauge-high"></i> Overview</a>
+  <a class="nav-lnk" href="#"><i class="fas fa-cubes"></i> Services</a>
+  <a class="nav-lnk active" href="#"><i class="fas fa-scroll"></i> Logs</a>
+  <a class="nav-lnk" href="#"><i class="fas fa-brain"></i> AI Insights</a>
+  <hr class="s-divider">
+  <a class="nav-lnk" href="#"><i class="fas fa-chart-area"></i> Kibana</a>
+  <a class="nav-lnk" href="#"><i class="fas fa-book-open"></i> API Docs</a>
+  <div class="s-footer">
+    <div class="s-user"><div class="s-avatar"><i class="fas fa-user" style="font-size:.65rem;"></i></div><div><div class="s-uname">admin</div><div class="s-urole">Administrator</div></div></div>
+    <button class="s-logout"><i class="fas fa-right-from-bracket"></i> Sign Out</button>
+  </div>
+</aside>
+
+<main class="main">
+  <!-- Page header -->
+  <div class="ph">
+    <div>
+      <div class="ph-title"><i class="fas fa-scroll" style="color:var(--primary);margin-right:.4rem;"></i>Live Log Feed</div>
+      <div class="ph-sub"><span class="live-dot"></span>Streaming in real-time · Last refresh 2s ago</div>
+    </div>
+    <div class="ph-right">
+      <span class="badge badge-blue">142,381 total today</span>
+      <button class="btn-sm btn-outline"><i class="fas fa-download"></i> Export</button>
+      <button class="btn-sm btn-primary"><i class="fas fa-pause"></i> Pause Stream</button>
+    </div>
+  </div>
+
+  <!-- KPI row -->
+  <div class="kpi-row">
+    <div class="kpi purple">
+      <div class="kpi-icon"><i class="fas fa-list"></i></div>
+      <div class="kpi-val">142k</div>
+      <div class="kpi-label">Total Logs Today</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-icon"><i class="fas fa-circle-exclamation"></i></div>
+      <div class="kpi-val">847</div>
+      <div class="kpi-label">Errors (24h)</div>
+    </div>
+    <div class="kpi orange">
+      <div class="kpi-icon"><i class="fas fa-triangle-exclamation"></i></div>
+      <div class="kpi-val">2,104</div>
+      <div class="kpi-label">Warnings (24h)</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-icon"><i class="fas fa-circle-check"></i></div>
+      <div class="kpi-val">99.4%</div>
+      <div class="kpi-label">Success Rate</div>
+    </div>
+  </div>
+
+  <!-- Log table card -->
+  <div class="card">
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="search-wrap"><i class="fas fa-search"></i><input class="search-input" type="text" value="error OR timeout" placeholder="Search logs…"></div>
+      <select class="filter-select">
+        <option>All Services</option>
+        <option>note-service</option>
+        <option>user-service</option>
+        <option>order-service</option>
+        <option>payment-service</option>
+      </select>
+      <select class="filter-select">
+        <option>All Levels</option>
+        <option selected>ERROR</option>
+        <option>WARN</option>
+        <option>INFO</option>
+        <option>DEBUG</option>
+      </select>
+      <select class="filter-select">
+        <option>Last 1 hour</option>
+        <option selected>Last 24 hours</option>
+        <option>Last 7 days</option>
+      </select>
+      <button class="btn-sm btn-primary"><i class="fas fa-filter"></i> Apply</button>
+    </div>
+
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Level</th>
+          <th>Service</th>
+          <th>Message</th>
+          <th>Status</th>
+          <th>Latency</th>
+          <th>Trace ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="ts">2026-05-06 14:32:07</span></td>
+          <td><span class="log-level lvl-error"><i class="fas fa-circle-xmark"></i>ERROR</span></td>
+          <td><span class="svc-chip"><i class="fas fa-server"></i>payment-service</span></td>
+          <td class="mono">Stripe webhook timeout after 30000ms — retrying (attempt 3/3)</td>
+          <td><span class="status-code sc-5xx">504</span></td>
+          <td style="color:#ef4444;font-weight:700;">30,412ms</td>
+          <td><span class="ts">a7f3c2d8</span></td>
+        </tr>
+        <tr>
+          <td><span class="ts">2026-05-06 14:31:54</span></td>
+          <td><span class="log-level lvl-error"><i class="fas fa-circle-xmark"></i>ERROR</span></td>
+          <td><span class="svc-chip"><i class="fas fa-server"></i>inventory-service</span></td>
+          <td class="mono">DB connection pool exhausted — max_connections=20 reached</td>
+          <td><span class="status-code sc-5xx">500</span></td>
+          <td style="color:#ef4444;font-weight:700;">8,201ms</td>
+          <td><span class="ts">b2e8d1f4</span></td>
+        </tr>
+        <tr>
+          <td><span class="ts">2026-05-06 14:31:42</span></td>
+          <td><span class="log-level lvl-warn"><i class="fas fa-triangle-exclamation"></i>WARN</span></td>
+          <td><span class="svc-chip"><i class="fas fa-server"></i>order-service</span></td>
+          <td class="mono">Slow query detected on orders table — took 1842ms (threshold 500ms)</td>
+          <td><span class="status-code sc-2xx">200</span></td>
+          <td style="color:#f59e0b;font-weight:700;">1,842ms</td>
+          <td><span class="ts">c9a1b5e7</span></td>
+        </tr>
+        <tr>
+          <td><span class="ts">2026-05-06 14:31:38</span></td>
+          <td><span class="log-level lvl-info"><i class="fas fa-circle-info"></i>INFO</span></td>
+          <td><span class="svc-chip"><i class="fas fa-server"></i>user-service</span></td>
+          <td class="mono">User login successful — uid=usr_48291 ip=203.0.113.45</td>
+          <td><span class="status-code sc-2xx">200</span></td>
+          <td>142ms</td>
+          <td><span class="ts">d4f7c3a2</span></td>
+        </tr>
+        <tr>
+          <td><span class="ts">2026-05-06 14:31:29</span></td>
+          <td><span class="log-level lvl-error"><i class="fas fa-circle-xmark"></i>ERROR</span></td>
+          <td><span class="svc-chip"><i class="fas fa-server"></i>payment-service</span></td>
+          <td class="mono">Payment processing failed — card declined (insufficient funds)</td>
+          <td><span class="status-code sc-4xx">402</span></td>
+          <td>389ms</td>
+          <td><span class="ts">e5a8b2c6</span></td>
+        </tr>
+        <tr>
+          <td><span class="ts">2026-05-06 14:31:17</span></td>
+          <td><span class="log-level lvl-info"><i class="fas fa-circle-info"></i>INFO</span></td>
+          <td><span class="svc-chip"><i class="fas fa-server"></i>note-service</span></td>
+          <td class="mono">Note created successfully — nid=note_00821 owner=usr_48291</td>
+          <td><span class="status-code sc-2xx">201</span></td>
+          <td>87ms</td>
+          <td><span class="ts">f1d9e4b3</span></td>
+        </tr>
+        <tr>
+          <td><span class="ts">2026-05-06 14:30:58</span></td>
+          <td><span class="log-level lvl-warn"><i class="fas fa-triangle-exclamation"></i>WARN</span></td>
+          <td><span class="svc-chip"><i class="fas fa-server"></i>user-service</span></td>
+          <td class="mono">Rate limit approaching — ip=203.0.113.45 requests=95/100</td>
+          <td><span class="status-code sc-2xx">200</span></td>
+          <td>61ms</td>
+          <td><span class="ts">a0c7f2d9</span></td>
+        </tr>
+        <tr>
+          <td><span class="ts">2026-05-06 14:30:44</span></td>
+          <td><span class="log-level lvl-error"><i class="fas fa-circle-xmark"></i>ERROR</span></td>
+          <td><span class="svc-chip"><i class="fas fa-server"></i>inventory-service</span></td>
+          <td class="mono">Redis cache miss storm — 4,200 sequential misses in 60s</td>
+          <td><span class="status-code sc-5xx">503</span></td>
+          <td style="color:#ef4444;font-weight:700;">12,088ms</td>
+          <td><span class="ts">b8e1c3f5</span></td>
+        </tr>
+        <tr>
+          <td><span class="ts">2026-05-06 14:30:31</span></td>
+          <td><span class="log-level lvl-debug"><i class="fas fa-bug"></i>DEBUG</span></td>
+          <td><span class="svc-chip"><i class="fas fa-server"></i>monitoring-core</span></td>
+          <td class="mono">Metrics snapshot collected — 8 services, 14 endpoints tracked</td>
+          <td><span class="status-code sc-2xx">200</span></td>
+          <td>22ms</td>
+          <td><span class="ts">c2a4d7e8</span></td>
+        </tr>
+        <tr>
+          <td><span class="ts">2026-05-06 14:30:19</span></td>
+          <td><span class="log-level lvl-info"><i class="fas fa-circle-info"></i>INFO</span></td>
+          <td><span class="svc-chip"><i class="fas fa-server"></i>order-service</span></td>
+          <td class="mono">Order fulfilled — ord=ord_00412 items=3 total=$127.40</td>
+          <td><span class="status-code sc-2xx">200</span></td>
+          <td>312ms</td>
+          <td><span class="ts">d6b3a1c9</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pag">
+      <div class="pag-info">Showing 1–10 of 847 error logs · filtered from 142,381 total</div>
+      <div class="pag-btns">
+        <div class="pag-btn"><i class="fas fa-chevron-left" style="font-size:.6rem;"></i></div>
+        <div class="pag-btn active">1</div>
+        <div class="pag-btn">2</div>
+        <div class="pag-btn">3</div>
+        <div class="pag-btn">…</div>
+        <div class="pag-btn">85</div>
+        <div class="pag-btn"><i class="fas fa-chevron-right" style="font-size:.6rem;"></i></div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+</body></html>
